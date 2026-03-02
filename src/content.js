@@ -200,13 +200,12 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs
     });
 
-    // 5. Close the compose window UI first — must happen before draft deletion
-    // so Gmail stops autosaving and doesn't show "Oops, something went wrong"
-    const discardSelector = '[data-tooltip="Discard draft"], [aria-label="Discard draft"], [title="Discard draft"]';
-    const discardBtn = composeWindow.querySelector(discardSelector)
-      || document.querySelector(discardSelector);
-    if (discardBtn) discardBtn.click();
-    else composeWindow.remove();
+    // 5. Remove the compose window directly from the DOM.
+    // The draft is already deleted via API — clicking Gmail's discard button
+    // crashes Gmail's internal code (offsetHeight/classList of null) because
+    // the window is in a post-send state. Direct removal is the clean path.
+    const composeContainer = composeWindow.closest('[role="dialog"]') || composeWindow;
+    composeContainer.remove();
 
     // 6. Delete the draft by ID after a short delay so Gmail has fully
     // stopped autosaving before we remove the draft from the backend
