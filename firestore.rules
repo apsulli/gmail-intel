@@ -2,21 +2,23 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Top-level emails collection
-    match /emails/{emailId} {
-      // For reads, updates, and deletes: the existing document must belong to the user
-      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      // For creates: the INCOMING document must have the user's uid as userId
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      
-      // Events sub-collection
+
+    // Per-user email collection
+    match /users/{userId}/emails/{emailId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Events written by Cloud Functions (Admin SDK bypasses rules).
+      // Readable by the owning user only (userId from path).
       match /events/{eventId} {
-        // Events are written by Cloud Functions (admin SDK) and have no userId field.
-        // emailIds are crypto.randomUUID() — 122-bit random, effectively unguessable.
-        // A get() cross-read in rules causes permission-denied on onSnapshot listeners,
-        // so we rely on UUID obscurity instead: any authed user who knows the emailId can read.
-        allow read: if request.auth != null;
+        allow read: if request.auth != null && request.auth.uid == userId;
       }
+    }
+
+    // Lookup collection: written by client at send time, read by Cloud Functions.
+    // Cloud Functions use Admin SDK (bypasses rules) so only client writes need a rule.
+    // No read rule needed from client side — emailLookup is internal-only.
+    match /emailLookup/{emailId} {
+      allow create: if request.auth != null;
     }
   }
 }
