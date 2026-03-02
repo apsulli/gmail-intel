@@ -2,60 +2,53 @@
 
 ## Current Position
 
-- **Phase**: Phase 6 — Full Multi-Tenant Support
-- **Task**: Planning complete — 4 plans created, ready to execute
-- **Status**: Paused at 2026-03-02
+- **Phase**: Phase 6 — Complete (pending human end-to-end verification)
+- **Task**: All automated tasks complete; awaiting cutover verification
+- **Status**: Active (resumed 2026-03-02)
 
 ## Last Session Summary
 
-- Executed Phase 5 plans (5.1, 5.2, 5.3) — toggle push, per-recipient analytics, draft deletion redesign
-- Fixed 5 post-execution bugs:
-  - Added `gmail.compose` OAuth scope (was blocking `drafts.send` and `GET /drafts`)
-  - Added error handler to `subscribeToEvents` (silent Firestore failures now surface)
-  - Fixed Firestore events security rule (removed `get()` cross-read causing permission-denied)
-  - Deployed Firestore composite index + rules via `firebase deploy --only firestore`
-  - Fixed draft deletion order-of-operations: close compose UI first, then DELETE draft after 1.5s delay
-  - Switched compose close from discard button click (crashing Gmail internals) to direct DOM removal
-- Untracked `dist/` and `.firebase/` from git (were committed before .gitignore)
-- Version bumped to 2.4.1
+Phase 6 executed successfully. 4 plans across 2 waves:
+
+- 6.1: `src/api/db.js` rewritten — `users/{userId}/emails/{emailId}` paths + `emailLookup/{emailId}` write
+- 6.2: `functions/index.js` updated — both Cloud Functions resolve userId via emailLookup
+- 6.3: `DashboardApp.jsx` updated — `userId` threaded into `EmailRow`; `content.js` verified correct
+- 6.4: `firestore.rules` + `firestore.indexes.json` updated; Cloud Functions deployed; Firestore rules + indexes deployed (old composite index deleted)
 
 ## In-Progress Work
 
-- No uncommitted changes.
+- Human cutover verification needed (see VERIFICATION.md)
 
 ## Blockers
 
-- None.
+- None for code. User must manually:
+  1. Reload extension in Chrome (chrome://extensions → reload)
+  2. Hard-refresh Gmail (Cmd+Shift+R)
+  3. Send a tracked email and verify Firestore paths in Firebase Console
+  4. Delete old top-level `emails/` collection in Firebase Console
 
 ## Context Dump
 
-### Draft Deletion — Final Working Approach
+### Multi-Tenant Design (Implemented)
 
-1. `getDraftId(composeWindow)` — DOM extraction (rarely succeeds in modern Gmail)
-2. `getLatestDraftId(token)` — `GET /drafts?maxResults=1` fallback (requires `gmail.compose` scope)
-3. Send all recipients via `messages.send` (unchanged, reliable)
-4. Log to Firestore
-5. Remove compose window via `composeWindow.closest('[role="dialog"]').remove()` — direct DOM removal, NOT discard button click (discard button crashes Gmail's internal code post-send)
-6. After 1.5s delay: `DELETE /drafts/{draftId}` — draft is gone from backend
+- Email docs written to `users/{userId}/emails/{emailId}` — userId from path, not field
+- `emailLookup/{emailId} → { userId }` written at send time by client
+- Cloud Functions read `emailLookup/{emailId}` to resolve userId without it being in tracking URLs
+- Tracking URLs stay clean: `?emailId=X&recipientId=Y` only (no userId)
+- Events written to `users/{userId}/emails/{emailId}/events/{eventId}`
+- Firestore rules use path param `userId` for auth (cleaner than `resource.data.userId`)
+- Events readable by owning user only (tighter than old "any authed user" rule)
 
-### Why discard button click was abandoned
-Clicking `[data-tooltip="Discard draft"]` after send causes Gmail internal errors
-(`offsetHeight` of null, `classList` of null) leaving compose in minimized zombie state.
-Direct DOM removal via `closest('[role="dialog"]')` is clean and scope-safe.
+### Files Changed in Phase 6
 
-### Firestore Events Security Rule
-Changed from `get()` cross-read to `request.auth != null`. The `get()` approach
-caused `permission-denied` on `onSnapshot` listeners. Safe because emailIds are
-`crypto.randomUUID()` — effectively unguessable.
-
-### Files of Interest
-- `src/content.js`: `getDraftId`, `getLatestDraftId`, `handleTrackedSend`
-- `src/background.js`: `GET_LATEST_DRAFT_ID`, `DELETE_DRAFT_BY_ID` handlers
-- `src/api/gmail.js`: `sendTrackedEmail` (always uses `SEND_EMAIL`)
-- `src/dashboard/DashboardApp.jsx`: per-recipient stats grid, `eventsError` state
-- `firestore.rules`: events rule now `request.auth != null`
+- `src/api/db.js`: all paths updated, subscribeToEvents/getEmailWithEvents take userId param
+- `functions/index.js`: both functions use emailLookup; respondWithGif helper extracted
+- `src/dashboard/DashboardApp.jsx`: userId prop on EmailRow, subscribeToEvents updated
+- `firestore.rules`: new path-based rules
+- `firestore.indexes.json`: empty (old composite index removed)
 
 ## Next Steps
 
-1. `/execute 6` — run plans 6.1 → 6.2 → 6.3 → 6.4 in order
-2. Phase 7 (Dashboard UX) follows after Phase 6 cutover verified
+1. Human end-to-end verify (see VERIFICATION.md checklist)
+2. Delete old `emails/` collection in Firebase Console
+3. `/execute 7` — Dashboard UX (weekly grouping, click drill-down, pagination)

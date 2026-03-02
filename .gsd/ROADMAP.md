@@ -57,7 +57,7 @@
 
 ### Phase 6: Full Multi-Tenant Support (Data Model Migration)
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Move `emails` from a top-level collection to a per-user subcollection (`users/{userId}/emails/{emailId}`). This is the correct multi-tenant data model — it eliminates the `userId` field query on the emails collection, simplifies security rules, and properly isolates data per user at the path level.
 **Depends on**: Phase 5
 
