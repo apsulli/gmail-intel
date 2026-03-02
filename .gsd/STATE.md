@@ -2,55 +2,41 @@
 
 ## Current Position
 
-- **Phase**: Phase 3 — Gmail Integration & Tracking Injection
-- **Task**: Verifying robust recipient extraction and background permission fixes
-- **Status**: Paused at 2026-03-02 14:25
+- **Phase**: Phase 4 — In-Gmail React Dashboard
+- **Task**: Planning complete
+- **Status**: Ready for execution (2026-03-02 14:20)
 
 ## Last Session Summary
 
-- Refactored `src/content.js` to search for `span[email]` chips and `div[data-hovercard-id]` in both the immediate compose window and its parents.
-- Recipient extraction confirmed working via user logs (it found them at `Parent Level 2`).
-- Fixed a "Failed to fetch" error in the background service worker by adding `gmail.googleapis.com` to host_permissions in `manifest.json`.
-- Standardized the Gmail API endpoint in `src/background.js` to use the JSON `messages.send` method.
-- Re-built the project (`npm run build`).
+- Fixed Firestore security rules (`create` vs `read/update/delete`)
+- Fixed data model: switched `addDoc` → `setDoc` with UUID as doc ID
+- Discussed Phase 4 scope and approach
+- Created 3 execution plans for Phase 4
 
 ## In-Progress Work
 
-- Waiting for user to send a tracked email to verify end-to-end tracking success and Firestore logging.
-- Files modified: `src/content.js`, `src/background.js`, `manifest.json`, `src/api/gmail.js` (previous turn).
-- Projects built: `dist/` updated.
+- Phase 3 is functionally complete (tracking sends, Firestore logging works)
+- Phase 4 plans created, ready for execution
 
 ## Blockers
 
-- None currently; waiting for user verification of the fix.
+- None
 
 ## Context Dump
 
 ### Decisions Made
 
-- Standardized on JSON `messages.send` over `upload/media` for simpler payload handling and better error reporting.
-- Expanded host permissions to include broad wildcards for Google APIs to prevent future "Failed to fetch" errors.
-
-### Approaches Tried
-
-- Ascending DOM search from body: Failed.
-- Refined Chip/Span search: Success.
-- Direct fetch from background (with upload/media): Failed with permission/CORS.
-- Refactored background send using standard JSON endpoint: Ready for test.
-
-### Current Hypothesis
-
-The "Failed to fetch" was 100% a manifest permission issue for the background service worker. The fix is now in place and built.
+- Dashboard location: Gmail Sidebar Panel (injected into right side)
+- Views: Summary list + Detail view with per-recipient activity
+- Updates: Real-time via Firestore `onSnapshot`
+- Aggregate stats: Nice-to-have, not blocking
 
 ### Files of Interest
 
-- `src/content.js`: Recipient extraction logic.
-- `src/background.js`: Proxy for Gmail API calls.
-- `manifest.json`: Host permissions.
+- `src/api/db.js`: Firestore query layer (to be extended in Plan 4.1)
+- `src/content.js`: Content script (sidebar injection in Plan 4.2)
+- `src/dashboard/`: New directory for dashboard React components (Plans 4.2, 4.3)
 
 ## Next Steps
 
-1. User to reload extension and test send.
-2. Verify tracking pixel receipt in a test inbox.
-3. Confirm link rewriting works (click one).
-4. Check Firestore for the logged tracking entry.
+1. `/execute 4` — Run all 3 plans
