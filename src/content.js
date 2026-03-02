@@ -17,7 +17,18 @@ async function initDashboardAuth() {
   }
 }
 
+function waitForGmailReady() {
+  return new Promise((resolve) => {
+    if (document.querySelector('div[role="main"]')) { resolve(); return; }
+    const obs = new MutationObserver(() => {
+      if (document.querySelector('div[role="main"]')) { obs.disconnect(); resolve(); }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+  });
+}
+
 (async () => {
+  await waitForGmailReady();
   const container = initSidebar();
   const user = await initDashboardAuth();
   mountDashboard(container, user);
@@ -172,9 +183,10 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs
     });
 
-    // 5. Cleanup
-    // Close the compose window by clicking the discard button
-    const discardBtn = composeWindow.querySelector('div[data-tooltip="Discard draft"]');
+    // 5. Cleanup — try discard button in compose scope first, then document-wide
+    const discardSelector = 'div[data-tooltip="Discard draft"], div[aria-label="Discard draft"]';
+    const discardBtn = composeWindow.querySelector(discardSelector)
+      || document.querySelector(discardSelector);
     if (discardBtn) discardBtn.click();
     else composeWindow.remove();
 

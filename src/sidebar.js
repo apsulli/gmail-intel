@@ -21,7 +21,7 @@ export function initSidebar() {
   Object.assign(toggle.style, {
     position: 'fixed',
     right: '16px',
-    top: '80px',
+    bottom: '80px',
     width: '40px',
     height: '40px',
     borderRadius: '50%',
