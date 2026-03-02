@@ -212,11 +212,17 @@ async function handleTrackedSend(composeWindow, sendButton) {
     composeContainer.remove();
 
     // 6. Delete the draft by ID after a short delay so Gmail has fully
-    // stopped autosaving before we remove the draft from the backend
+    // stopped autosaving before we remove the draft from the backend.
+    // After deletion, click Gmail's Refresh button so the draft badge and
+    // Drafts folder view sync without requiring a full page reload.
     if (draftId) {
       setTimeout(() => {
         chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_ID', token, draftId }, (res) => {
           console.log(`Gmail Intel: draft delete status ${res?.status ?? 'error'} for ID ${draftId}`);
+          const refreshBtn = document.querySelector(
+            'div[data-tooltip="Refresh"], button[aria-label="Refresh"]'
+          );
+          if (refreshBtn) refreshBtn.click();
         });
       }, 1500);
     }
