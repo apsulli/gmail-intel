@@ -2,9 +2,9 @@
 
 ## Current Position
 
-- **Phase**: Phase 5 — Polish & Per-Recipient Analytics
-- **Task**: All Phase 5 plans executed and bugs resolved. Verified by user.
-- **Status**: Paused at 2026-03-02
+- **Phase**: Phase 6 — Full Multi-Tenant Support
+- **Task**: Planning complete — 4 plans created, ready to execute
+- **Status**: Ready for execution (2026-03-02)
 
 ## Last Session Summary
 
@@ -57,5 +57,5 @@ caused `permission-denied` on `onSnapshot` listeners. Safe because emailIds are
 
 ## Next Steps
 
-1. Plan and execute Phase 6 (see ROADMAP.md for upcoming phases)
-2. Consider Chrome Web Store submission (see `.ai/outputs/chrome-web-store-publishing.md`)
+1. `/execute 6` — run plans 6.1 → 6.2 → 6.3 → 6.4 in order
+2. Phase 7 (Dashboard UX) follows after Phase 6 cutover verified
