@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail Intel Mail Tracker Extension",
+  "version": "1.0.0",
+  "description": "Secure Gmail Tracking Extension",
+  "permissions": [
+    "identity",
+    "scripting",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "assets/content.js-70ENR28v.js"
+      ],
+      "matches": [
+        "https://mail.google.com/*"
+      ]
+    }
+  ],
+  "oauth2": {
+    "client_id": "649396916340-6558v2b3n9a1s354dr37pf3gch570463.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.send",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile"
+    ]
+  },
+  "action": {
+    "default_popup": "index.html"
+  },
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "https://mail.google.com/*"
+      ],
+      "resources": [
+        "assets/content.js-70ENR28v.js"
+      ],
+      "use_dynamic_url": false
+    }
+  ]
+}
