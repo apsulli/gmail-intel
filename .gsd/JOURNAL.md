@@ -1,5 +1,38 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 14:07
+
+### Objective
+
+Fix remaining Phase 3 bugs, discuss and plan Phase 4 (In-Gmail React Dashboard).
+
+### Accomplished
+
+- Fixed Firestore security rules: split `allow write` into `allow create` (checks `request.resource.data.userId`) and `allow read, update, delete` (checks `resource.data.userId`). Deployed to Firebase.
+- Fixed critical data model mismatch: switched `logEmailSent` from `addDoc` (auto-generated IDs) to `setDoc` with UUID as doc ID, aligning with Cloud Functions' `emails/{UUID}/events/...` path.
+- User confirmed end-to-end tracking is working.
+- Discussed Phase 4: decided on Gmail Sidebar Panel, Summary + Detail views, real-time updates.
+- Documented decisions in `DECISIONS.md`.
+- Created 3 execution plans: 4.1 (Firestore data layer), 4.2 (Sidebar shell + React mount), 4.3 (Dashboard UI components).
+- Committed all plans.
+
+### Verification
+
+- [x] Firestore rules deployed successfully
+- [x] Extension builds successfully
+- [x] User confirmed tracked email send works end-to-end
+- [x] Phase 4 plans created and committed
+
+### Paused Because
+
+User requested pause. Planning complete, ready for execution.
+
+### Handoff Notes
+
+- Run `/execute 4` to start building the dashboard.
+- Wave 1 (4.1 + 4.2) can run in parallel. Wave 2 (4.3) depends on both.
+- No blockers. No uncommitted changes.
+
 ## Session: 2026-03-02 14:22
 
 ### Objective
