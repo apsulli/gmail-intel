@@ -2,78 +2,44 @@
 
 ## Current Position
 
-- **Phase**: Phase 3 — Chrome Extension & Gmail API Integration
+- **Phase**: Phase 3 — Gmail Integration & Tracking Injection
 - **Task**: Debugging recipient extraction from Gmail compose DOM
-- **Status**: Active (resumed 2026-03-02 13:53)
+- **Status**: Paused at 2026-03-02 13:59
 
 ## Last Session Summary
 
-- Fixed OAuth "Authorization page could not be loaded" error by verifying Chrome App credential setup
-- Fixed CORS error: moved Gmail API `fetch` from content script → background service worker proxy
-- Updated MutationObserver to detect both popup compose windows AND inline reply forms
-- Defaulted "Track Email" toggle to checked (true)
-- Added Google Site Verification meta tag → deployed hosting → domain verification in Search Console
-- Added extensive 🔍 debug logging to recipient extraction (awaiting user's console output)
+- Created `SPEC.md`, `ROADMAP.md`, `REQUIREMENTS.md`, and initialized new `.gsd` structure for Gmail Intel tracker extension.
+- Started debugging recipient extraction failure based on logs provided: "Please add at least one recipient."
 
 ## In-Progress Work
 
-- Recipient extraction is failing ("Please add at least one recipient") — the debug logging was added but user paused before providing console output
-- Files modified since last commit:
-  - `src/content.js` — Major refactors: DOM observer, recipient parsing with ascending loop, debug logging
-  - `src/background.js` — Added `SEND_EMAIL` message handler (Gmail API proxy)
-  - `src/api/gmail.js` — Refactored to proxy through background SW instead of direct fetch
-  - `hosting/index.html` — Added Google Site Verification meta tag
+- Recipient extraction is failing in `src/content.js`. Looking at user logs, the 35 levels of ascending DOM traversal from `div[aria-label="Message Body"]` is _not_ finding any `to`/`cc`/`bcc` inputs.
+- Logs show: `Checked for inputs. Found 0 to/cc/bcc inputs.` at every depth up to depth 35.
 
 ## Blockers
 
-**Primary blocker**: Recipient extraction from Gmail's DOM is failing. The `input[name="to"]` elements exist in Gmail's DOM but their `.value` property may be empty — Gmail may store the actual email address in a different attribute or element. The `data-hovercard-id` chip fallback and `[email]` attribute fallback are also not finding recipients.
-
-**Root cause hypothesis**: The `composeWindow` variable (set by the MutationObserver's ascending DOM walk) may not be a high enough ancestor to contain the recipient inputs. OR Gmail's hidden `input[name="to"]` fields have empty `.value` and the actual email is stored elsewhere (e.g., in `span[email]` elements inside recipient chips, or in `data-tooltip` attributes).
+**Primary blocker**: Ascending DOM loop from the message body div isn't finding recipient inputs in the tree path, or the inputs don't exist as parents/siblings in the way the DOM traversal expects.
 
 ## Context Dump
 
 ### Decisions Made
 
-- **CORS bypass via background.js**: Content scripts in MV3 cannot make cross-origin fetches to `gmail.googleapis.com`. Solution: proxy through background service worker via `chrome.runtime.sendMessage`. This is the standard pattern.
-- **MutationObserver anchored on `div[aria-label="Message Body"]`**: This element exists in both popup compose and inline reply forms, making it a reliable anchor. We ascend up to 15 levels to find the Send button container.
-- **WeakMap for tracking state**: Each compose window gets its own tracking toggle state stored in a `WeakMap` keyed by the compose window DOM element.
+- New project initialized using `/new-project` flow. Extension uses Firebase MV3 architectures.
 
 ### Approaches Tried
 
-- `input[name="to"]` hidden inputs → Found inputs but `.value` was empty
-- `[data-hovercard-id]` on recipient chips → Also returned empty
-- `[email]` attribute fallback → Not yet confirmed in console output
-- Ascending DOM loop from `bodyDiv` → Finds `to` inputs but values are empty
+- Ascending DOM loop up to 35 levels from `bodyDiv` — logs show it finds 0 inputs at every level.
 
 ### Current Hypothesis
 
-Gmail's recipient chips likely store the email address in a `span[email="user@example.com"]` attribute on the chip element itself, NOT in the hidden `input[name="to"]` `.value`. The next step should be:
-
-1. Get the 🔍 console logs from the user to confirm what depth the inputs are found at and what their values are
-2. If inputs have empty values, try: `composeWindow.querySelectorAll('span[email]')` and extract the `email` attribute
-3. Also try: `composeWindow.querySelectorAll('div[data-hovercard-id]')` at the `composeWindow` level (not just within the ascending loop)
+Gmail's DOM structure for replies (particularly inline replies) might not have the recipient fields as ancestors of the `Message Body` `div`. Instead of walking _up_ to find them, we may need to traverse up to a known common ancestor (like the entire conversation container or the inline reply widget wrapper), and then query _down_ to find the recipient chips. Alternatively, `composeWindow` (the highest found container) may be correct, but the inputs aren't `input[name="to"]`. We need to query for `span[email]` on `composeWindow.ownerDocument` or similar.
 
 ### Files of Interest
 
-- `src/content.js`: Lines 46-96 — the recipient extraction logic with debug logging
-- `src/background.js`: Lines 19-49 — the SEND_EMAIL proxy handler
-- `src/api/gmail.js`: Lines 19-40 — the refactored sendTrackedEmail using chrome.runtime.sendMessage
-- `hosting/index.html`: Line 6 — Google Site Verification meta tag
+- `src/content.js`: Recipient extraction logic.
 
 ## Next Steps
 
-1. **Get console log output** — Reload extension, send test email, copy the 🔍 logs. This will reveal exactly where the loop stops and what values it finds.
-2. **Fix recipient extraction** — Based on logs, likely need to add `span[email]` selector as the primary extraction method (Gmail stores recipient email in `email` attribute on span elements inside chips).
-3. **Remove debug logging** — Once recipient extraction is fixed, strip the verbose 🔍 logs.
-4. **Test end-to-end** — Verify: tracked email sends → links rewritten → pixel appended → Firestore entry created → opening email triggers trackPixel → clicking link triggers trackClick.
-5. **Phase 4** — Build the in-Gmail React Dashboard (currently a stub).
-
-## Key Project Info
-
-- **Firebase Project ID**: `gm-intel`
-- **Cloud Functions URLs**:
-  - `https://us-central1-gm-intel.cloudfunctions.net/trackPixel`
-  - `https://us-central1-gm-intel.cloudfunctions.net/trackClick`
-- **Extension Client ID**: `649396916340-6558v2b3n9a1s354dr37pf3gch570463.apps.googleusercontent.com`
-- **Homepage**: `https://gm-intel.web.app/`
-- **Privacy Policy**: `https://gm-intel.web.app/privacy.html`
+1. Review `src/content.js` to change the recipient querying strategy.
+2. Instead of an ascending loop looking for inputs, try querying the entire document or a much higher level container for `div[data-hovercard-id]` or `span[email]`.
+3. Fix the recipient extraction so tracking can proceed.

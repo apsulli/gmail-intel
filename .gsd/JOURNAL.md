@@ -1,5 +1,29 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 13:59
+
+### Objective
+
+Investigate user's tracking issues in Gmail extension. Initialize the overall project structure.
+
+### Accomplished
+
+- Executed `/new-project` workflow to initialize the .gsd files (`SPEC.md`, `ROADMAP.md`, `REQUIREMENTS.md`, etc.).
+- Received logs for tracking extraction errors. Ascending algorithm to find recipient input fields is NOT working ("Found 0 to/cc/bcc inputs") up to depth 35.
+
+### Verification
+
+- [ ] Project initialized
+- [ ] Bug located: Yes, the inputs are not found by `composeWindow.querySelectorAll` at any level.
+
+### Paused Because
+
+User requested `/pause-work` with a log dump showing the error. Pausing to document the findings and ensure context is stored cleanly for the next run.
+
+### Handoff Notes
+
+- The log says `Initial container: <div id=":6f" ... aria-label="Message Body" ...>`. It checks up to Depth 35 and finds nothing. This implies the strategy of ascending up the DOM from `aria-label="Message Body"` and looking for inputs at each step is flawed. Either the inputs are not placed in the `to`/`cc`/`bcc` arrays, or they don't exist as `<input>` forms in that segment of the DOM tree. We need to query for something like `span[email]` somewhere else on the page OR the `composeWindow` is not the correct ancestor for the recipient fields.
+
 ## Session: 2026-03-02 13:50
 
 ### Objective
