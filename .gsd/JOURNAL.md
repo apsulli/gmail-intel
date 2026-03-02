@@ -1,5 +1,48 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 (Phase 6 Execution + Draft Badge Fix)
+
+### Objective
+
+Execute Phase 6 (multi-tenant data model migration) and fix stale draft badge after tracked send.
+
+### Accomplished
+
+**Phase 6 execution (2 commits):**
+- 6.1: db.js → `users/{userId}/emails/{emailId}` paths + `emailLookup/{emailId}` write
+- 6.2: Cloud Functions → emailLookup-based userId resolution for trackPixel + trackClick
+- 6.3: DashboardApp.jsx → userId prop threaded into EmailRow + subscribeToEvents
+- 6.4: firestore.rules + firestore.indexes.json updated
+- Deployed Cloud Functions (both functions updated successfully)
+- Deployed Firestore rules + deleted old composite index with `--force`
+
+**Bug fix:**
+- After tracked send, Gmail's draft badge was stale until user navigated
+- Root cause: draft deleted via API but Gmail's frontend state machine unaware
+- Fix: click `div[data-tooltip="Refresh"]` after DELETE_DRAFT_BY_ID callback
+
+### Verification
+
+- [x] `npm run build` passes after Phase 6 changes
+- [x] Cloud Functions deployed: trackPixel + trackClick updated
+- [x] Firestore rules deployed with new path-param auth
+- [x] Old composite index deleted
+- [ ] Human end-to-end verify: send → check Firebase Console paths → dashboard shows data
+- [ ] Old `emails/` collection deleted in Firebase Console
+- [ ] Draft badge refresh fix verified in Chrome
+
+### Paused Because
+
+User requested pause after Phase 6 execution and bug fix complete.
+
+### Handoff Notes
+
+- All code changes committed, all deploys done
+- Human cutover checklist in `.gsd/phases/6/VERIFICATION.md`
+- Next: `/execute 7` after cutover verified
+
+---
+
 ## Session: 2026-03-02 (Phase 6 Planning)
 
 ### Objective
