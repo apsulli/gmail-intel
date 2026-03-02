@@ -1,26 +1,40 @@
 {
   "../../../../@crx/manifest": {
-    "file": "assets/crx-manifest.js-DN4UORH-.js",
+    "file": "assets/crx-manifest.js-C95H1cQE.js",
     "name": "crx-manifest.js",
     "src": "../../../../@crx/manifest",
     "isEntry": true
   },
+  "_client-Cw25wJni.js": {
+    "file": "assets/client-Cw25wJni.js",
+    "name": "client"
+  },
+  "content.js-loader.js": {
+    "file": "assets/content.js-loader-Ds-95cQm.js",
+    "src": "content.js-loader.js"
+  },
   "index.html": {
-    "file": "assets/index.html-B_E_DmcN.js",
+    "file": "assets/index.html-Dn6gtuwA.js",
     "name": "index.html",
     "src": "index.html",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_client-Cw25wJni.js"
+    ]
   },
   "src/background.js": {
-    "file": "assets/background.js-Coj7Ax5Y.js",
+    "file": "assets/background.js-Ba5Nxnyu.js",
     "name": "background.js",
     "src": "src/background.js",
     "isEntry": true
   },
   "src/content.js": {
-    "file": "assets/content.js-Bkrcqawe.js",
+    "file": "assets/content.js-CeM9lDwQ.js",
     "name": "content.js",
     "src": "src/content.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_client-Cw25wJni.js"
+    ]
   }
 }

@@ -4,7 +4,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Top-level emails collection
     match /emails/{emailId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      // For reads, updates, and deletes: the existing document must belong to the user
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      // For creates: the INCOMING document must have the user's uid as userId
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       
       // Events sub-collection
       match /events/{eventId} {
