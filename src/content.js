@@ -1,8 +1,27 @@
 import { logEmailSent } from './api/db.js';
 import { sendTrackedEmail } from './api/gmail.js';
 import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { initSidebar } from './sidebar.js';
+import { mountDashboard } from './dashboard/index.jsx';
 
 console.log("Gmail Intel Content Script Loaded.");
+
+async function initDashboardAuth() {
+  try {
+    const token = await getAuthToken();
+    const user = await authenticateFirebase(token);
+    return user;
+  } catch (e) {
+    console.warn("Gmail Intel: dashboard auth failed", e);
+    return null;
+  }
+}
+
+(async () => {
+  const container = initSidebar();
+  const user = await initDashboardAuth();
+  mountDashboard(container, user);
+})();
 
 const TRACKING_STATE = new WeakMap();
 
