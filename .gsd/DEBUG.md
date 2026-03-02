@@ -50,3 +50,55 @@
 - Added `aria-label="Discard draft"` as additional selector variant
 
 ## Status: RESOLVED
+
+---
+
+# Debug Session: 2026-03-02 — Phase 5 Bugs
+
+## Bug 1 — Drafts remain after send
+
+**When:** Every tracked send
+**Expected:** Draft disappears after send
+**Actual:** Draft persists in Gmail Drafts
+
+### Root Cause: CONFIRMED
+OAuth scope `gmail.send` is insufficient for the `drafts.send` API.
+
+- `drafts.send` requires `gmail.compose`, `gmail.modify`, or `https://mail.google.com/`
+- `GET /drafts` (for fallback draft ID) requires `gmail.readonly`, `gmail.compose`, or `gmail.modify`
+- `gmail.send` alone covers **neither**
+
+What happened at runtime:
+1. `getDraftId(composeWindow)` → null (modern Gmail: no `input[name="draft"]` or `[data-draft-id]`)
+2. `getLatestDraftId()` → `GET /drafts?maxResults=1` → **403 Forbidden**
+3. `response?.id` → undefined → `draftId = null`
+4. Falls back to `SEND_EMAIL` → email sent, draft untouched
+
+### Fix Applied
+Added `https://www.googleapis.com/auth/gmail.compose` to `oauth2.scopes` in `manifest.json`.
+Chrome will prompt re-authorization on next `getAuthToken()` — this is expected.
+
+---
+
+## Bug 2 — Real-time stats not updating
+
+**When:** After a tracked email is opened or a link is clicked
+**Expected:** Dashboard shows updated open/click counts live
+**Actual:** Counts stay at 0; no live updates
+
+### Root Cause: CONFIRMED
+`subscribeToEvents()` had **no error callback**. Firestore `onSnapshot` errors
+are silently swallowed — subscription simply stops with no indication.
+
+Likely causes of underlying Firestore error:
+- Firestore composite index not deployed (`firebase deploy --only firestore` still pending)
+- Security rule uses `get()` for cross-read — can fail on auth/quota edge cases
+
+### Fix Applied
+1. Added `onError` parameter to `subscribeToEvents` in `db.js`
+2. Added `eventsError` state to `EmailRow` — error shown inline when row expanded
+
+### Remaining Action Required
+`firebase deploy --only firestore` — deploys composite index for emails query.
+
+## Status: RESOLVED (code fixes applied; firebase deploy still required)

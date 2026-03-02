@@ -47,9 +47,11 @@ function buildRecipientStats(recipients, events) {
 
 function EmailRow({ email, onSelect, selected }) {
   const [events, setEvents] = useState([]);
+  const [eventsError, setEventsError] = useState(null);
 
   useEffect(() => {
-    const unsub = subscribeToEvents(email.id, setEvents);
+    setEventsError(null);
+    const unsub = subscribeToEvents(email.id, setEvents, setEventsError);
     return unsub;
   }, [email.id]);
 
@@ -87,7 +89,12 @@ function EmailRow({ email, onSelect, selected }) {
           {email.recipients?.length ?? 0} recipient{email.recipients?.length !== 1 ? 's' : ''}
         </span>
       </div>
-      {selected && (() => {
+      {selected && eventsError && (
+        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #dadce0', fontSize: '11px', color: '#c5221f' }}>
+          Events error: {eventsError.message}
+        </div>
+      )}
+      {selected && !eventsError && (() => {
         const stats = buildRecipientStats(email.recipients ?? [], events);
         return (
           <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #dadce0' }}>

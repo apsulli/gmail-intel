@@ -29,15 +29,21 @@ export function subscribeToEmails(userId, callback, onError) {
   );
 }
 
-export function subscribeToEvents(emailId, callback) {
+export function subscribeToEvents(emailId, callback, onError) {
   const q = query(
     collection(db, "emails", emailId, "events"),
     orderBy("timestamp", "desc")
   );
-  return onSnapshot(q, (snapshot) => {
-    const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    callback(events);
-  });
+  return onSnapshot(q,
+    (snapshot) => {
+      const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      callback(events);
+    },
+    (error) => {
+      console.error("Gmail Intel: subscribeToEvents error", emailId, error);
+      onError?.(error);
+    }
+  );
 }
 
 export async function getEmailWithEvents(emailId) {
