@@ -10,15 +10,26 @@ const TRANSPARENT_GIF_BUFFER = Buffer.from(
   "base64",
 );
 
+function respondWithGif(res) {
+  res.set("Content-Type", "image/gif");
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.status(200).send(TRANSPARENT_GIF_BUFFER);
+}
+
 exports.trackPixel = functions.https.onRequest(async (req, res) => {
   const emailId = req.query.emailId;
   const recipientId = req.query.recipientId;
 
   if (emailId && recipientId) {
     try {
+      const lookupSnap = await db.collection("emailLookup").doc(emailId).get();
+      if (!lookupSnap.exists) {
+        return respondWithGif(res);
+      }
+      const userId = lookupSnap.data().userId;
       await db
-        .collection("emails")
-        .doc(emailId)
+        .collection("users").doc(userId)
+        .collection("emails").doc(emailId)
         .collection("events")
         .add({
           type: "open",
@@ -35,9 +46,7 @@ exports.trackPixel = functions.https.onRequest(async (req, res) => {
     }
   }
 
-  res.set("Content-Type", "image/gif");
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.status(200).send(TRANSPARENT_GIF_BUFFER);
+  respondWithGif(res);
 });
 
 exports.trackClick = functions.https.onRequest(async (req, res) => {
@@ -47,21 +56,25 @@ exports.trackClick = functions.https.onRequest(async (req, res) => {
 
   if (emailId && recipientId && targetUrl) {
     try {
-      await db
-        .collection("emails")
-        .doc(emailId)
-        .collection("events")
-        .add({
-          type: "click",
-          recipientId: recipientId,
-          targetUrl: targetUrl,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          userAgent: req.headers["user-agent"] || "unknown",
-          ip:
-            req.headers["x-forwarded-for"] ||
-            req.socket.remoteAddress ||
-            "unknown",
-        });
+      const lookupSnap = await db.collection("emailLookup").doc(emailId).get();
+      if (lookupSnap.exists) {
+        const userId = lookupSnap.data().userId;
+        await db
+          .collection("users").doc(userId)
+          .collection("emails").doc(emailId)
+          .collection("events")
+          .add({
+            type: "click",
+            recipientId: recipientId,
+            targetUrl: targetUrl,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            userAgent: req.headers["user-agent"] || "unknown",
+            ip:
+              req.headers["x-forwarded-for"] ||
+              req.socket.remoteAddress ||
+              "unknown",
+          });
+      }
     } catch (error) {
       console.error("Error logging click track:", error);
     }

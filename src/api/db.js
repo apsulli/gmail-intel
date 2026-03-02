@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import {
   getFirestore,
   doc, setDoc, serverTimestamp,
-  collection, query, where, orderBy, limit,
+  collection, query, orderBy, limit,
   onSnapshot, getDoc, getDocs
 } from "firebase/firestore";
 import { firebaseConfig } from "../firebase-config.js";
@@ -12,8 +12,7 @@ export const db = getFirestore(app);
 
 export function subscribeToEmails(userId, callback, onError) {
   const q = query(
-    collection(db, "emails"),
-    where("userId", "==", userId),
+    collection(db, "users", userId, "emails"),
     orderBy("sentAt", "desc"),
     limit(50)
   );
@@ -29,9 +28,9 @@ export function subscribeToEmails(userId, callback, onError) {
   );
 }
 
-export function subscribeToEvents(emailId, callback, onError) {
+export function subscribeToEvents(userId, emailId, callback, onError) {
   const q = query(
-    collection(db, "emails", emailId, "events"),
+    collection(db, "users", userId, "emails", emailId, "events"),
     orderBy("timestamp", "desc")
   );
   return onSnapshot(q,
@@ -46,11 +45,11 @@ export function subscribeToEvents(emailId, callback, onError) {
   );
 }
 
-export async function getEmailWithEvents(emailId) {
-  const emailRef = doc(db, "emails", emailId);
+export async function getEmailWithEvents(userId, emailId) {
+  const emailRef = doc(db, "users", userId, "emails", emailId);
   const [emailSnap, eventsSnap] = await Promise.all([
     getDoc(emailRef),
-    getDocs(collection(db, "emails", emailId, "events"))
+    getDocs(collection(db, "users", userId, "emails", emailId, "events"))
   ]);
   if (!emailSnap.exists()) return null;
   const events = eventsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -59,13 +58,17 @@ export async function getEmailWithEvents(emailId) {
 
 export async function logEmailSent(emailData) {
   try {
-    // Use the emailId (UUID) as the Firestore document ID so it matches
-    // the path used by Cloud Functions: emails/{emailId}/events/{eventId}
-    const { emailId, ...rest } = emailData;
-    await setDoc(doc(db, "emails", emailId), {
+    const { emailId, userId, ...rest } = emailData;
+    await setDoc(doc(db, "users", userId, "emails", emailId), {
       ...rest,
       sentAt: serverTimestamp(),
     });
+    // Write lookup doc so Cloud Functions can resolve userId from emailId
+    try {
+      await setDoc(doc(db, "emailLookup", emailId), { userId });
+    } catch (e) {
+      console.error("Gmail Intel: emailLookup write failed", e);
+    }
     return emailId;
   } catch (e) {
     console.error("Error adding document: ", e);

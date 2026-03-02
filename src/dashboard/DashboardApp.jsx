@@ -45,15 +45,15 @@ function buildRecipientStats(recipients, events) {
   return stats;
 }
 
-function EmailRow({ email, onSelect, selected }) {
+function EmailRow({ email, userId, onSelect, selected }) {
   const [events, setEvents] = useState([]);
   const [eventsError, setEventsError] = useState(null);
 
   useEffect(() => {
     setEventsError(null);
-    const unsub = subscribeToEvents(email.id, setEvents, setEventsError);
+    const unsub = subscribeToEvents(userId, email.id, setEvents, setEventsError);
     return unsub;
-  }, [email.id]);
+  }, [userId, email.id]);
 
   const opens = events.filter(e => e.type === 'open').length;
   const clicks = events.filter(e => e.type === 'click').length;
@@ -175,6 +175,7 @@ export default function DashboardApp({ user }) {
         <EmailRow
           key={email.id}
           email={email}
+          userId={user.uid}
           selected={selected?.id === email.id}
           onSelect={setSelected}
         />
