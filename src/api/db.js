@@ -10,17 +10,23 @@ import { firebaseConfig } from "../firebase-config.js";
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export function subscribeToEmails(userId, callback) {
+export function subscribeToEmails(userId, callback, onError) {
   const q = query(
     collection(db, "emails"),
     where("userId", "==", userId),
     orderBy("sentAt", "desc"),
     limit(50)
   );
-  return onSnapshot(q, (snapshot) => {
-    const emails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    callback(emails);
-  });
+  return onSnapshot(q,
+    (snapshot) => {
+      const emails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      callback(emails);
+    },
+    (error) => {
+      console.error("Gmail Intel: subscribeToEmails error", error);
+      onError?.(error);
+    }
+  );
 }
 
 export function subscribeToEvents(emailId, callback) {

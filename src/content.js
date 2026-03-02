@@ -183,8 +183,13 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs
     });
 
-    // 5. Cleanup — try discard button in compose scope first, then document-wide
-    const discardSelector = 'div[data-tooltip="Discard draft"], div[aria-label="Discard draft"]';
+    // 5. Delete the draft from Gmail via API (reliable across popup + threaded compose)
+    chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_SUBJECT', token, subject }, (res) => {
+      console.log(`Gmail Intel: deleted ${res?.deleted ?? 0} draft(s) for subject "${subject}"`);
+    });
+
+    // 6. Close the compose window UI
+    const discardSelector = '[data-tooltip="Discard draft"], [aria-label="Discard draft"], [title="Discard draft"]';
     const discardBtn = composeWindow.querySelector(discardSelector)
       || document.querySelector(discardSelector);
     if (discardBtn) discardBtn.click();

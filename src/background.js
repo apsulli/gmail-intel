@@ -17,6 +17,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // We will respond asynchronously
   }
 
+  // Find drafts by subject and delete them (cleans up after tracked send)
+  if (message.type === 'DELETE_DRAFT_BY_SUBJECT') {
+    const { token, subject } = message;
+    const q = encodeURIComponent(`subject:"${subject}" in:drafts`);
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts?q=${q}&maxResults=5`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then(r => r.json())
+    .then(async (data) => {
+      const drafts = data.drafts || [];
+      await Promise.all(drafts.map(d =>
+        fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${d.id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ));
+      sendResponse({ deleted: drafts.length });
+    })
+    .catch(e => sendResponse({ error: e.message }));
+    return true;
+  }
+
   // Handle the Gmail API Send request internally to bypass content script CORS
   if (message.type === 'SEND_EMAIL') {
     const { token, payload } = message;

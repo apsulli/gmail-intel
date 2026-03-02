@@ -59,10 +59,12 @@ function EmailRow({ email, onSelect, selected }) {
 export default function DashboardApp({ user }) {
   const [emails, setEmails] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!user) return;
-    const unsub = subscribeToEmails(user.uid, setEmails);
+    setError(null);
+    const unsub = subscribeToEmails(user.uid, setEmails, setError);
     return unsub;
   }, [user?.uid]);
 
@@ -81,7 +83,18 @@ export default function DashboardApp({ user }) {
         <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#5f6368' }}>Tracked email activity</p>
       </div>
 
-      {emails === null && (
+      {error && (
+        <div style={{ padding: '12px 16px', background: '#fce8e6', borderBottom: '1px solid #f5c6c2' }}>
+          <p style={{ margin: 0, fontSize: '12px', color: '#c5221f', fontWeight: 500 }}>Failed to load emails</p>
+          <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#c5221f' }}>{error.message}</p>
+          {error.message?.includes('index') && (
+            <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#c5221f' }}>
+              Run: <code>firebase deploy --only firestore</code>
+            </p>
+          )}
+        </div>
+      )}
+      {!error && emails === null && (
         <div style={{ padding: '16px', textAlign: 'center', color: '#5f6368', fontSize: '13px' }}>Loading…</div>
       )}
       {emails !== null && emails.length === 0 && (
