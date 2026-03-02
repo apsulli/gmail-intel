@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-> **Current Phase**: Not started
+> **Current Phase**: Phase 3
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
@@ -13,19 +13,19 @@
 
 ### Phase 1: Foundation & Firebase Setup
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Set up Firebase project, Firestore database, and basic Chrome Extension MV3 scaffolding.
 **Requirements**: REQ-01, REQ-04, REQ-05 (Backend setup)
 
 ### Phase 2: Open and Click Tracking Backend
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Implement Cloud Functions or backend endpoints to handle pixel loads (opens) and link redirects (clicks) and write to Firestore.
 **Requirements**: REQ-04, REQ-05
 
 ### Phase 3: Gmail Integration & Tracking Injection
 
-**Status**: ⬜ Not Started
+**Status**: 🚧 In Progress (Errors)
 **Objective**: Inject tracking UI into Gmail compose window. Intercept sent emails, rewrite links, and append tracking pixel.
 **Requirements**: REQ-01, REQ-02, REQ-03
 
