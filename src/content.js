@@ -192,14 +192,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipientLogs.push({ email: recipient, id: recipientId });
     }
 
-    // 4. Delete the draft by ID now that all sends are complete
-    if (draftId) {
-      chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_ID', token, draftId }, (res) => {
-        console.log(`Gmail Intel: draft delete status ${res?.status ?? 'error'} for ID ${draftId}`);
-      });
-    }
-
-    // 5. Log to Firestore
+    // 4. Log to Firestore
     await logEmailSent({
       emailId: emailId,
       userId: user.uid,
@@ -207,12 +200,23 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs
     });
 
-    // 6. Close the compose window UI
+    // 5. Close the compose window UI first — must happen before draft deletion
+    // so Gmail stops autosaving and doesn't show "Oops, something went wrong"
     const discardSelector = '[data-tooltip="Discard draft"], [aria-label="Discard draft"], [title="Discard draft"]';
     const discardBtn = composeWindow.querySelector(discardSelector)
       || document.querySelector(discardSelector);
     if (discardBtn) discardBtn.click();
     else composeWindow.remove();
+
+    // 6. Delete the draft by ID after a short delay so Gmail has fully
+    // stopped autosaving before we remove the draft from the backend
+    if (draftId) {
+      setTimeout(() => {
+        chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_ID', token, draftId }, (res) => {
+          console.log(`Gmail Intel: draft delete status ${res?.status ?? 'error'} for ID ${draftId}`);
+        });
+      }, 1500);
+    }
 
   } catch (error) {
     console.error("Tracking Error:", error);
