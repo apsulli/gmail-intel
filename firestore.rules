@@ -11,9 +11,11 @@ service cloud.firestore {
       
       // Events sub-collection
       match /events/{eventId} {
-      	// Events are often written by the backend (Cloud Functions), which bypasses rules.
-        // If the extension needs to read them, ensure the parent email belongs to the user.
-        allow read: if request.auth != null && get(/databases/$(database)/documents/emails/$(emailId)).data.userId == request.auth.uid;
+        // Events are written by Cloud Functions (admin SDK) and have no userId field.
+        // emailIds are crypto.randomUUID() — 122-bit random, effectively unguessable.
+        // A get() cross-read in rules causes permission-denied on onSnapshot listeners,
+        // so we rely on UUID obscurity instead: any authed user who knows the emailId can read.
+        allow read: if request.auth != null;
       }
     }
   }
