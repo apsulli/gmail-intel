@@ -1,5 +1,56 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 14:22
+
+### Objective
+
+Resolve "Failed to fetch" error when sending a tracked email.
+
+### Accomplished
+
+- Recipient extraction confirmed working via logs! Found recipients at `Parent Level 2`.
+- Fixed `manifest.json` host_permissions to include `gmail.googleapis.com` and a broader wildcard for `*.googleapis.com` (for Firebase/Auth/Firestore).
+- Refactored `src/background.js` to use the standard JSON `messages.send` endpoint instead of the `upload/media` endpoint.
+- Updated `background.js` to properly return specific error messages (e.g., `Gmail Error [400]: ...`) instead of generic "Failed to fetch" when possible.
+- Re-built the extension (`npm run build`).
+
+### Verification
+
+- [x] Recipient extraction (verified by user log)
+- [ ] Send success (needs test)
+- [ ] Firestore log (needs test)
+
+### Handoff Notes
+
+- **Action Required**: The user must reload the extension from `chrome://extensions` and refresh Gmail.
+- The "Failed to fetch" error was very likely due to the missing `gmail.googleapis.com` permission in the manifest, combined with the upload endpoint being more restrictive.
+
+## Session: 2026-03-02 14:15
+
+### Objective
+
+Fix recipient extraction in `src/content.js` to handle modern Gmail chips and different compose window layouts.
+
+### Accomplished
+
+- Refactored `handleTrackedSend` in `src/content.js` to use a more robust `extractFrom` search.
+- Added support for finding recipients in `span[email]` tags (modern chips) and `div[data-hovercard-id]` attributes.
+- Implemented "Broader Context Support": if extraction fails in the immediate `composeWindow`, it now walks _up_ to its parents (up to 5 levels) to check for cousin elements containing recipients.
+- Increased `MutationObserver` ancestor search to 20 levels (from 15) when finding the `composeWindow` from the `bodyDiv`.
+- Built the extension with `npm run build`.
+
+### Verification
+
+- [ ] Successful extraction of recipients from inline replies (need user test).
+- [ ] Tracking pixel correctly appended to the intercepted email html.
+- [ ] Link rewriting verified in Firestore log.
+
+### Handoff Notes
+
+- I have implemented the robust recipient extraction.
+- **The user must reload the extension and test it by sending a tracked email.**
+- If it still fails, the console logs (🔍) will now show exactly where it looked (`extractFrom(composeWindow)` vs `Parent Level X`). This will provide more granular data for debugging.
+
 ## Session: 2026-03-02 13:59
 
 ### Objective

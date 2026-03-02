@@ -11,7 +11,9 @@
   ],
   "host_permissions": [
     "https://mail.google.com/*",
-    "https://www.googleapis.com/*"
+    "https://gmail.googleapis.com/*",
+    "https://*.firebaseio.com/*",
+    "https://*.googleapis.com/*"
   ],
   "background": {
     "service_worker": "service-worker-loader.js",
@@ -20,7 +22,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content.js-70ENR28v.js"
+        "assets/content.js-Bkrcqawe.js"
       ],
       "matches": [
         "https://mail.google.com/*"
@@ -44,7 +46,7 @@
         "https://mail.google.com/*"
       ],
       "resources": [
-        "assets/content.js-70ENR28v.js"
+        "assets/content.js-Bkrcqawe.js"
       ],
       "use_dynamic_url": false
     }

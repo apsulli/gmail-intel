@@ -3,43 +3,54 @@
 ## Current Position
 
 - **Phase**: Phase 3 — Gmail Integration & Tracking Injection
-- **Task**: Debugging recipient extraction from Gmail compose DOM
-- **Status**: Paused at 2026-03-02 13:59
+- **Task**: Verifying robust recipient extraction and background permission fixes
+- **Status**: Paused at 2026-03-02 14:25
 
 ## Last Session Summary
 
-- Created `SPEC.md`, `ROADMAP.md`, `REQUIREMENTS.md`, and initialized new `.gsd` structure for Gmail Intel tracker extension.
-- Started debugging recipient extraction failure based on logs provided: "Please add at least one recipient."
+- Refactored `src/content.js` to search for `span[email]` chips and `div[data-hovercard-id]` in both the immediate compose window and its parents.
+- Recipient extraction confirmed working via user logs (it found them at `Parent Level 2`).
+- Fixed a "Failed to fetch" error in the background service worker by adding `gmail.googleapis.com` to host_permissions in `manifest.json`.
+- Standardized the Gmail API endpoint in `src/background.js` to use the JSON `messages.send` method.
+- Re-built the project (`npm run build`).
 
 ## In-Progress Work
 
-- Recipient extraction is failing in `src/content.js`. Looking at user logs, the 35 levels of ascending DOM traversal from `div[aria-label="Message Body"]` is _not_ finding any `to`/`cc`/`bcc` inputs.
-- Logs show: `Checked for inputs. Found 0 to/cc/bcc inputs.` at every depth up to depth 35.
+- Waiting for user to send a tracked email to verify end-to-end tracking success and Firestore logging.
+- Files modified: `src/content.js`, `src/background.js`, `manifest.json`, `src/api/gmail.js` (previous turn).
+- Projects built: `dist/` updated.
 
 ## Blockers
 
-**Primary blocker**: Ascending DOM loop from the message body div isn't finding recipient inputs in the tree path, or the inputs don't exist as parents/siblings in the way the DOM traversal expects.
+- None currently; waiting for user verification of the fix.
 
 ## Context Dump
 
 ### Decisions Made
 
-- New project initialized using `/new-project` flow. Extension uses Firebase MV3 architectures.
+- Standardized on JSON `messages.send` over `upload/media` for simpler payload handling and better error reporting.
+- Expanded host permissions to include broad wildcards for Google APIs to prevent future "Failed to fetch" errors.
 
 ### Approaches Tried
 
-- Ascending DOM loop up to 35 levels from `bodyDiv` — logs show it finds 0 inputs at every level.
+- Ascending DOM search from body: Failed.
+- Refined Chip/Span search: Success.
+- Direct fetch from background (with upload/media): Failed with permission/CORS.
+- Refactored background send using standard JSON endpoint: Ready for test.
 
 ### Current Hypothesis
 
-Gmail's DOM structure for replies (particularly inline replies) might not have the recipient fields as ancestors of the `Message Body` `div`. Instead of walking _up_ to find them, we may need to traverse up to a known common ancestor (like the entire conversation container or the inline reply widget wrapper), and then query _down_ to find the recipient chips. Alternatively, `composeWindow` (the highest found container) may be correct, but the inputs aren't `input[name="to"]`. We need to query for `span[email]` on `composeWindow.ownerDocument` or similar.
+The "Failed to fetch" was 100% a manifest permission issue for the background service worker. The fix is now in place and built.
 
 ### Files of Interest
 
 - `src/content.js`: Recipient extraction logic.
+- `src/background.js`: Proxy for Gmail API calls.
+- `manifest.json`: Host permissions.
 
 ## Next Steps
 
-1. Review `src/content.js` to change the recipient querying strategy.
-2. Instead of an ascending loop looking for inputs, try querying the entire document or a much higher level container for `div[data-hovercard-id]` or `span[email]`.
-3. Fix the recipient extraction so tracking can proceed.
+1. User to reload extension and test send.
+2. Verify tracking pixel receipt in a test inbox.
+3. Confirm link rewriting works (click one).
+4. Check Firestore for the logged tracking entry.

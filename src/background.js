@@ -21,27 +21,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SEND_EMAIL') {
     const { token, payload } = message;
     
-    fetch("https://gmail.googleapis.com/upload/gmail/v1/users/me/messages/send?uploadType=media", {
+    console.log("🔍 Background: Sending email via Gmail API...");
+
+    fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "message/rfc822",
+        "Content-Type": "application/json",
       },
-      body: payload,
+      body: JSON.stringify({ raw: payload }),
     })
     .then(async (response) => {
       if (!response.ok) {
-        const err = await response.text();
-        console.error("Failed to send email via Gmail API", err);
-        sendResponse({ error: err });
+        const errText = await response.text();
+        console.error("🔍 Gmail API Error:", errText);
+        sendResponse({ error: `Gmail Error [${response.status}]: ${errText}` });
       } else {
         const data = await response.json();
+        console.log("🔍 Gmail API Success:", data);
         sendResponse({ data: data });
       }
     })
     .catch((error) => {
-      console.error("Fetch error:", error);
-      sendResponse({ error: error.message });
+      console.error("🔍 Fetch Network Error:", error);
+      sendResponse({ error: "Network Error: " + error.message });
     });
 
     return true; // Asynchronous response

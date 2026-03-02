@@ -45,51 +45,63 @@ async function handleTrackedSend(composeWindow, sendButton) {
 
     const bodyDiv = composeWindow.querySelector('div[aria-label="Message Body"]');
 
-    // Parse recipients by ascending from the bodyDiv to find the true compose container
-    // This is required because inline replies have the inputs much higher in the hierarchy
-    let currentContainer = bodyDiv || composeWindow;
+    // Parse recipients by searching the entire composeWindow container first
     let recipients = [];
     let subject = "(No Subject)";
     
-    console.log("🔍 Starting recipient search. Initial container:", currentContainer);
-    let depth = 0;
+    console.log("🔍 Extracting recipients from container:", composeWindow);
 
-    while (currentContainer && currentContainer !== document.body) {
-      depth++;
-      const toInputs = Array.from(currentContainer.querySelectorAll('input[name="to"], input[name="cc"], input[name="bcc"]'));
-      console.log(`🔍 [Depth ${depth}] Checked for inputs. Found ${toInputs.length} to/cc/bcc inputs.`);
-      
-      const subjectInputFound = currentContainer.querySelector('input[name="subjectbox"]');
-      if (subjectInputFound) {
-        subject = subjectInputFound.value;
-      }
-
-      if (toInputs.length > 0) {
-        recipients = toInputs.map(input => input.value).filter(val => val && val.includes('@'));
-        console.log(`🔍 [Depth ${depth}] Extracted from inputs:`, recipients);
+    // Function to extract from ANY element using a set of known selectors
+    const extractFrom = (container) => {
+        const found = [];
         
-        // As a fallback, try to grab visible chips inside this exact container if hidden inputs are missing values
-        if (recipients.length === 0) {
-            const chips = Array.from(currentContainer.querySelectorAll('[data-hovercard-id]'));
-            recipients = chips.map(chip => chip.getAttribute('data-hovercard-id')).filter(val => val && val.includes('@'));
-            console.log(`🔍 [Depth ${depth}] Extracted from chips (fallback 1):`, recipients);
+        // 1. Hidden inputs (legacy/some popups)
+        const inputs = container.querySelectorAll('input[name="to"], input[name="cc"], input[name="bcc"]');
+        inputs.forEach(input => {
+            if (input.value && input.value.includes('@')) found.push(input.value);
+        });
+
+        // 2. Chip elements (Modern Gmail) - span[email] is the most reliable
+        const emailSpans = container.querySelectorAll('span[email]');
+        emailSpans.forEach(span => {
+            const email = span.getAttribute('email');
+            if (email && email.includes('@')) found.push(email);
+        });
+
+        // 3. Hovercard chips
+        const hovercards = container.querySelectorAll('[data-hovercard-id]');
+        hovercards.forEach(card => {
+            const email = card.getAttribute('data-hovercard-id');
+            if (email && email.includes('@')) found.push(email);
+        });
+
+        return found;
+    };
+
+    recipients = extractFrom(composeWindow);
+    console.log("🔍 Initial extraction from composeWindow found:", recipients);
+
+    // If still empty, the recipients might be cousins (common in inline replies)
+    // We'll ascend up to 5 levels from the composeWindow to find a larger context
+    if (recipients.length === 0) {
+        let broaderContext = composeWindow;
+        for (let i = 0; i < 5; i++) {
+            broaderContext = broaderContext.parentElement;
+            if (!broaderContext || broaderContext === document.body) break;
+            
+            const extra = extractFrom(broaderContext);
+            if (extra.length > 0) {
+                console.log(`🔍 Found recipients at Parent Level ${i+1}:`, extra);
+                recipients = extra;
+                break;
+            }
         }
-        break; // We found the compose boundary!
-      }
-      
-      currentContainer = currentContainer.parentElement;
     }
 
-    if (recipients.length === 0) {
-       console.log("🔍 Fallback 2: Loop found nothing. Scanning the highest level composeWindow for chips.");
-       const chips = Array.from(composeWindow.querySelectorAll('[email], [data-hovercard-id]'));
-       console.log(`🔍 Found ${chips.length} elements with 'email' or 'data-hovercard-id' attributes.`);
-       
-       recipients = chips.map(chip => {
-          return chip.getAttribute('email') || chip.getAttribute('data-hovercard-id');
-       }).filter(val => val && val.includes('@'));
-       console.log("🔍 Extracted from fallback 2:", recipients);
-    }
+    // Try to find subject
+    const subjectInput = composeWindow.querySelector('input[name="subjectbox"]') || 
+                         document.querySelector('input[name="subjectbox"]'); // Global fallback for subject
+    if (subjectInput) subject = subjectInput.value;
 
     // Deduplicate recipients
     recipients = [...new Set(recipients)];
@@ -242,7 +254,8 @@ const observer = new MutationObserver(() => {
     let sendButton = null;
     
     // Ascend the DOM tree to find the common container holding both the body and the send button
-    for (let i = 0; i < 15; i++) {
+    // We go up to 20 levels to ensure we capture the full compose context
+    for (let i = 0; i < 20; i++) {
         if (!composeWindow) break;
         sendButton = composeWindow.querySelector('div[role="button"][data-tooltip^="Send"]');
         if (sendButton) break;
