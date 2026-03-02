@@ -28,14 +28,8 @@ export async function sendTrackedEmail(token, { to, subject, body, trackingPixel
 
   // Content scripts are subject to CORS restrictions in modern Chrome.
   // We must proxy this request to the background service worker!
-  // Use SEND_DRAFT when a draftId is available — it atomically sends + deletes the draft.
-  const messageType = draftId ? 'SEND_DRAFT' : 'SEND_EMAIL';
-  const messagePayload = draftId
-    ? { type: messageType, token, draftId, payload: b64Safe }
-    : { type: messageType, token, payload: b64Safe };
-
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(messagePayload, (response) => {
+    chrome.runtime.sendMessage({ type: 'SEND_EMAIL', token, payload: b64Safe }, (response) => {
       if (chrome.runtime.lastError) {
         return reject(new Error(chrome.runtime.lastError.message));
       }

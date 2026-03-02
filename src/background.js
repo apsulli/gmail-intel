@@ -32,29 +32,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  // Send a draft atomically (sends + deletes the draft)
-  if (message.type === 'SEND_DRAFT') {
-    const { token, draftId, payload } = message;
-    fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts/send', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: draftId,
-        message: { raw: payload },
-      }),
+  // Delete a draft by ID (used after sending tracked email)
+  if (message.type === 'DELETE_DRAFT_BY_ID') {
+    const { token, draftId } = message;
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
     })
-    .then(async (response) => {
-      if (!response.ok) {
-        const errText = await response.text();
-        sendResponse({ error: `Gmail Error [${response.status}]: ${errText}` });
-      } else {
-        sendResponse({ data: await response.json() });
-      }
+    .then(response => {
+      sendResponse({ ok: response.ok, status: response.status });
     })
-    .catch(e => sendResponse({ error: 'Network Error: ' + e.message }));
+    .catch(e => sendResponse({ error: e.message }));
     return true;
   }
 

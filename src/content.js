@@ -173,9 +173,6 @@ async function handleTrackedSend(composeWindow, sendButton) {
     const recipientLogs = [];
 
     // 3. Process Mail Merge
-    // Only the first recipient uses draftId (drafts.send atomically deletes it).
-    // Subsequent recipients use messages.send (draftId = null).
-    let firstSend = true;
     for (const recipient of recipients) {
       const recipientId = generateId();
 
@@ -191,20 +188,18 @@ async function handleTrackedSend(composeWindow, sendButton) {
       const bodyHtml = tempDiv.innerHTML;
       const trackingPixelHtml = `<img src="${PIXEL_URL}?emailId=${emailId}&recipientId=${recipientId}" width="1" height="1" style="display:none" />`;
 
-      // Send via Gmail API
-      await sendTrackedEmail(token, {
-        to: recipient,
-        subject: subject,
-        body: bodyHtml,
-        trackingPixelHtml: trackingPixelHtml,
-        draftId: firstSend ? draftId : null,
-      });
-      firstSend = false;
-
+      await sendTrackedEmail(token, { to: recipient, subject, body: bodyHtml, trackingPixelHtml });
       recipientLogs.push({ email: recipient, id: recipientId });
     }
 
-    // 4. Log to Firestore
+    // 4. Delete the draft by ID now that all sends are complete
+    if (draftId) {
+      chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_ID', token, draftId }, (res) => {
+        console.log(`Gmail Intel: draft delete status ${res?.status ?? 'error'} for ID ${draftId}`);
+      });
+    }
+
+    // 5. Log to Firestore
     await logEmailSent({
       emailId: emailId,
       userId: user.uid,
@@ -212,7 +207,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs
     });
 
-    // 5. Close the compose window UI
+    // 6. Close the compose window UI
     const discardSelector = '[data-tooltip="Discard draft"], [aria-label="Discard draft"], [title="Discard draft"]';
     const discardBtn = composeWindow.querySelector(discardSelector)
       || document.querySelector(discardSelector);
