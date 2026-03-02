@@ -1,5 +1,34 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 (Wave 1)
+
+### Objective
+
+Execute Phase 4 Wave 1 — Firestore data layer, sidebar shell, React mount. Bump version to 2.0.0.
+
+### Accomplished
+
+- Created `CLAUDE.md`, `GEMINI.md`, `AGENTS.md` with codebase guidance
+- Plan 4.1: `subscribeToEmails`, `subscribeToEvents`, `getEmailWithEvents` added to `src/api/db.js`; `firestore.indexes.json` created; `firebase.json` updated
+- Plan 4.2: `src/sidebar.js` (fixed panel + 📊 toggle); `src/dashboard/DashboardApp.jsx` (placeholder); `src/dashboard/index.jsx` (`mountDashboard`); `src/content.js` wired with `initDashboardAuth()` IIFE
+- Bumped `manifest.json` and `package.json` to `2.0.0`
+- `npm run build` passes ✓
+
+### Verification
+
+- [x] Build passes
+- [ ] Sidebar + toggle visible in Gmail (human checkpoint pending)
+- [ ] Firestore index deployed (`firebase deploy --only firestore`)
+
+### Paused Because
+
+User requested pause. Awaiting human checkpoint before Wave 2 (Plan 4.3).
+
+### Handoff Notes
+
+- Reload extension → refresh Gmail → verify 📊 button and sidebar slide-in
+- Then deploy Firestore index, then `/execute 4` for Wave 2
+
 ## Session: 2026-03-02 14:07
 
 ### Objective
