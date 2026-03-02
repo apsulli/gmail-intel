@@ -1,5 +1,44 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 (Phase 6 Planning)
+
+### Objective
+
+Resume from Phase 5 completion, add multi-tenant data model migration as Phase 6, discuss and plan it.
+
+### Accomplished
+
+- Added Phase 6 (Full Multi-Tenant Support) and Phase 7 (Dashboard UX) to ROADMAP.md
+- Discussed Phase 6 scope: migration strategy, userId-in-URLs security, Firestore indexes, deployment order
+- Documented decisions in DECISIONS.md:
+  - Copy-then-delete migration (Option A) — no script needed, all data is junk test data
+  - `emailLookup/{emailId} → { userId }` lookup collection to avoid exposing Firebase UID in tracking URLs
+  - Drop composite index (auto-index sufficient for user-scoped path queries)
+  - Wipe-and-restart cutover (simplest, pre-production)
+- Created 4 execution plans in `.gsd/phases/6/`:
+  - 6.1: `src/api/db.js` — new Firestore paths + emailLookup write
+  - 6.2: `functions/index.js` — lookup-based userId resolution in Cloud Functions
+  - 6.3: Frontend wiring — `content.js` URL verification + `DashboardApp.jsx` userId threading
+  - 6.4: Config + cutover — rules, indexes, deploy, end-to-end verify
+
+### Verification
+
+- [x] Plans committed: `docs(phase-6): create execution plans for multi-tenant data model migration`
+- [x] DECISIONS.md updated with all Phase 6 decisions
+- [x] ROADMAP.md has Phase 6 + Phase 7 task lists
+
+### Paused Because
+
+User requested pause after planning complete.
+
+### Handoff Notes
+
+- All 4 plans are ready. Execute wave 1 first (6.1, 6.2, 6.3 can be coded together), then wave 2 (6.4 deploys + cutover).
+- Key design: `emailLookup/{emailId}` written by client at send time; Cloud Functions read it to find `users/{userId}/emails/{emailId}` path
+- After 6.4 cutover: manually delete `emails/` collection in Firebase Console (all test data)
+
+---
+
 ## Session: 2026-03-02 (Phase 5 Execution + Bug Sprint)
 
 ### Objective
