@@ -204,6 +204,10 @@ async function handleTrackedSend(composeWindow, sendButton) {
     // The draft is already deleted via API — clicking Gmail's discard button
     // crashes Gmail's internal code (offsetHeight/classList of null) because
     // the window is in a post-send state. Direct removal is the clean path.
+    // Safety: composeWindow is already scoped to THIS compose (the smallest
+    // ancestor containing its Send button). closest('[role="dialog"]') only
+    // walks UP from that node, so it finds this compose's dialog, never a
+    // sibling compose. Falls back to composeWindow itself for inline replies.
     const composeContainer = composeWindow.closest('[role="dialog"]') || composeWindow;
     composeContainer.remove();
 
