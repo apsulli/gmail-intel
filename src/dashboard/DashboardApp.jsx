@@ -1,6 +1,50 @@
 import { useState, useEffect } from 'react';
 import { subscribeToEmails, subscribeToEvents } from '../api/db.js';
 
+function Stat({ label, value }) {
+  return (
+    <div>
+      <span style={{ fontSize: '10px', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+        {label}
+      </span>
+      <div style={{ fontSize: '12px', color: value ? '#202124' : '#9aa0a6' }}>
+        {value ?? '—'}
+      </div>
+    </div>
+  );
+}
+
+function formatTs(date) {
+  if (!date) return null;
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function buildRecipientStats(recipients, events) {
+  const stats = {};
+  for (const r of recipients) {
+    stats[r.id] = { opens: 0, clicks: 0, lastOpen: null, lastClick: null };
+  }
+  for (const e of events) {
+    const s = stats[e.recipientId];
+    if (!s) continue;
+    const ts = e.timestamp?.toDate?.() ?? null;
+    if (e.type === 'open') {
+      s.opens++;
+      if (!s.lastOpen || ts > s.lastOpen) s.lastOpen = ts;
+    } else if (e.type === 'click') {
+      s.clicks++;
+      if (!s.lastClick || ts > s.lastClick) s.lastClick = ts;
+    }
+  }
+  return stats;
+}
+
 function EmailRow({ email, onSelect, selected }) {
   const [events, setEvents] = useState([]);
 
@@ -43,15 +87,33 @@ function EmailRow({ email, onSelect, selected }) {
           {email.recipients?.length ?? 0} recipient{email.recipients?.length !== 1 ? 's' : ''}
         </span>
       </div>
-      {selected && (
-        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #dadce0' }}>
-          {email.recipients?.map(r => (
-            <div key={r.id} style={{ fontSize: '12px', color: '#3c4043', marginBottom: '2px' }}>
-              {r.email}
-            </div>
-          ))}
-        </div>
-      )}
+      {selected && (() => {
+        const stats = buildRecipientStats(email.recipients ?? [], events);
+        return (
+          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #dadce0' }}>
+            {(email.recipients ?? []).map(r => {
+              const s = stats[r.id] ?? { opens: 0, clicks: 0, lastOpen: null, lastClick: null };
+              return (
+                <div key={r.id} style={{
+                  marginBottom: '8px',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid #f1f3f4',
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 500, color: '#202124', marginBottom: '4px' }}>
+                    {r.email}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
+                    <Stat label="Opens" value={s.opens || null} />
+                    <Stat label="Clicks" value={s.clicks || null} />
+                    <Stat label="Last open" value={formatTs(s.lastOpen)} />
+                    <Stat label="Last click" value={formatTs(s.lastClick)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }

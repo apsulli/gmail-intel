@@ -17,25 +17,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // We will respond asynchronously
   }
 
-  // Find drafts by subject and delete them (cleans up after tracked send)
-  if (message.type === 'DELETE_DRAFT_BY_SUBJECT') {
-    const { token, subject } = message;
-    const q = encodeURIComponent(`subject:"${subject}" in:drafts`);
-    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts?q=${q}&maxResults=5`, {
+  // Get the most recent draft ID (fallback when DOM extraction fails)
+  if (message.type === 'GET_LATEST_DRAFT_ID') {
+    const { token } = message;
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts?maxResults=1', {
       headers: { Authorization: `Bearer ${token}` },
     })
     .then(r => r.json())
-    .then(async (data) => {
-      const drafts = data.drafts || [];
-      await Promise.all(drafts.map(d =>
-        fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${d.id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        })
-      ));
-      sendResponse({ deleted: drafts.length });
+    .then(data => {
+      const id = data.drafts?.[0]?.id ?? null;
+      sendResponse({ id });
     })
     .catch(e => sendResponse({ error: e.message }));
+    return true;
+  }
+
+  // Send a draft atomically (sends + deletes the draft)
+  if (message.type === 'SEND_DRAFT') {
+    const { token, draftId, payload } = message;
+    fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: draftId,
+        message: { raw: payload },
+      }),
+    })
+    .then(async (response) => {
+      if (!response.ok) {
+        const errText = await response.text();
+        sendResponse({ error: `Gmail Error [${response.status}]: ${errText}` });
+      } else {
+        sendResponse({ data: await response.json() });
+      }
+    })
+    .catch(e => sendResponse({ error: 'Network Error: ' + e.message }));
     return true;
   }
 

@@ -10,7 +10,7 @@
     "name": "client"
   },
   "content.js-loader.js": {
-    "file": "assets/content.js-loader-Ds-95cQm.js",
+    "file": "assets/content.js-loader-HKP_nUgJ.js",
     "src": "content.js-loader.js"
   },
   "index.html": {
@@ -23,13 +23,13 @@
     ]
   },
   "src/background.js": {
-    "file": "assets/background.js-Ba5Nxnyu.js",
+    "file": "assets/background.js-i5lTu2eA.js",
     "name": "background.js",
     "src": "src/background.js",
     "isEntry": true
   },
   "src/content.js": {
-    "file": "assets/content.js-CeM9lDwQ.js",
+    "file": "assets/content.js-BTRwtTm4.js",
     "name": "content.js",
     "src": "src/content.js",
     "isEntry": true,

@@ -65,6 +65,26 @@ async function authenticateFirebase(token) {
   return auth.currentUser;
 }
 
+function getDraftId(composeWindow) {
+  // 1. Input with name="draft" (legacy compose popups)
+  const input = composeWindow.querySelector('input[name="draft"]');
+  if (input?.value) return input.value;
+
+  // 2. data-draft-id attribute anywhere in compose
+  const el = composeWindow.querySelector('[data-draft-id]');
+  if (el) return el.getAttribute('data-draft-id');
+
+  return null;
+}
+
+async function getLatestDraftId(token) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'GET_LATEST_DRAFT_ID', token }, (response) => {
+      resolve(response?.id ?? null);
+    });
+  });
+}
+
 async function handleTrackedSend(composeWindow, sendButton) {
   try {
     // 1. Get Auth Token
@@ -146,12 +166,19 @@ async function handleTrackedSend(composeWindow, sendButton) {
     const emailId = generateId();
     const rawBodyHtml = bodyDiv ? bodyDiv.innerHTML : "";
 
+    // Extract draft ID before sending — used to atomically send+delete the draft
+    const draftId = getDraftId(composeWindow) ?? await getLatestDraftId(token);
+    console.log("Gmail Intel: draft ID resolved to", draftId);
+
     const recipientLogs = [];
 
     // 3. Process Mail Merge
+    // Only the first recipient uses draftId (drafts.send atomically deletes it).
+    // Subsequent recipients use messages.send (draftId = null).
+    let firstSend = true;
     for (const recipient of recipients) {
       const recipientId = generateId();
-      
+
       // Rewrite links
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = rawBodyHtml;
@@ -169,8 +196,10 @@ async function handleTrackedSend(composeWindow, sendButton) {
         to: recipient,
         subject: subject,
         body: bodyHtml,
-        trackingPixelHtml: trackingPixelHtml
+        trackingPixelHtml: trackingPixelHtml,
+        draftId: firstSend ? draftId : null,
       });
+      firstSend = false;
 
       recipientLogs.push({ email: recipient, id: recipientId });
     }
@@ -183,12 +212,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs
     });
 
-    // 5. Delete the draft from Gmail via API (reliable across popup + threaded compose)
-    chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_SUBJECT', token, subject }, (res) => {
-      console.log(`Gmail Intel: deleted ${res?.deleted ?? 0} draft(s) for subject "${subject}"`);
-    });
-
-    // 6. Close the compose window UI
+    // 5. Close the compose window UI
     const discardSelector = '[data-tooltip="Discard draft"], [aria-label="Discard draft"], [title="Discard draft"]';
     const discardBtn = composeWindow.querySelector(discardSelector)
       || document.querySelector(discardSelector);

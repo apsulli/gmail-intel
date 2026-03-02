@@ -34,12 +34,19 @@ export function initSidebar() {
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '18px',
+    transition: 'right 0.3s ease',
   });
   toggle.textContent = '📊';
 
   toggle.addEventListener('click', () => {
     const isOpen = sidebar.style.transform === 'translateX(0px)' || sidebar.style.transform === 'translateX(0)';
-    sidebar.style.transform = isOpen ? 'translateX(100%)' : 'translateX(0)';
+    if (isOpen) {
+      sidebar.style.transform = 'translateX(100%)';
+      toggle.style.right = '16px';
+    } else {
+      sidebar.style.transform = 'translateX(0)';
+      toggle.style.right = '376px';
+    }
   });
 
   document.body.appendChild(sidebar);

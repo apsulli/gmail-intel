@@ -22,7 +22,7 @@
   "content_scripts": [
     {
       "js": [
-        "assets/content.js-loader-Ds-95cQm.js"
+        "assets/content.js-loader-HKP_nUgJ.js"
       ],
       "matches": [
         "https://mail.google.com/*"
@@ -47,7 +47,7 @@
       ],
       "resources": [
         "assets/client-Cw25wJni.js",
-        "assets/content.js-CeM9lDwQ.js"
+        "assets/content.js-BTRwtTm4.js"
       ],
       "use_dynamic_url": false
     }
