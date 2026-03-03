@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import {
-  getFirestore,
+  initializeFirestore,
   doc, setDoc, serverTimestamp,
   collection, query, orderBy, limit,
   onSnapshot, getDoc, getDocs
@@ -8,7 +8,10 @@ import {
 import { firebaseConfig } from "../firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Chrome extension content scripts run in a sandboxed context where Firestore's
+// default WebChannel transport fails. Force long-polling to avoid the
+// "WebChannelConnection RPC Listen stream transport errored" noise.
+export const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 
 export function subscribeToEmails(userId, callback, onError, limitCount = 20) {
   const q = query(
