@@ -188,7 +188,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
       const bodyHtml = tempDiv.innerHTML;
       const trackingPixelHtml = `<img src="${PIXEL_URL}?emailId=${emailId}&recipientId=${recipientId}" width="1" height="1" style="display:none" />`;
 
-      await sendTrackedEmail(token, { to: recipient, subject, body: bodyHtml, trackingPixelHtml });
+      await sendTrackedEmail(token, { to: recipient, subject, body: bodyHtml, trackingPixelHtml, from: user });
       recipientLogs.push({ email: recipient, id: recipientId });
     }
 
@@ -213,18 +213,27 @@ async function handleTrackedSend(composeWindow, sendButton) {
 
     // 6. Delete the draft by ID after a short delay so Gmail has fully
     // stopped autosaving before we remove the draft from the backend.
-    // After deletion, click Gmail's Refresh button so the draft badge and
-    // Drafts folder view sync without requiring a full page reload.
+    // After deletion (or if no draft ID), click Gmail's Refresh button so
+    // the draft badge and Drafts folder view sync without requiring a full
+    // page reload. Uses starts-with ^= selector to handle localized tooltips.
+    const clickGmailRefresh = () => {
+      const refreshBtn = document.querySelector(
+        'div[data-tooltip^="Refresh"], button[aria-label^="Refresh"]'
+      );
+      if (refreshBtn) refreshBtn.click();
+      else console.warn('Gmail Intel: Refresh button not found in DOM');
+    };
+
     if (draftId) {
       setTimeout(() => {
         chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_ID', token, draftId }, (res) => {
           console.log(`Gmail Intel: draft delete status ${res?.status ?? 'error'} for ID ${draftId}`);
-          const refreshBtn = document.querySelector(
-            'div[data-tooltip="Refresh"], button[aria-label="Refresh"]'
-          );
-          if (refreshBtn) refreshBtn.click();
+          clickGmailRefresh();
         });
       }, 1500);
+    } else {
+      // No draft to delete; still refresh to sync Gmail's UI state
+      setTimeout(clickGmailRefresh, 1500);
     }
 
   } catch (error) {

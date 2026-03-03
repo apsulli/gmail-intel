@@ -1,9 +1,15 @@
 // src/api/gmail.js
-export async function sendTrackedEmail(token, { to, subject, body, trackingPixelHtml, draftId }) {
+export async function sendTrackedEmail(token, { to, subject, body, trackingPixelHtml, from }) {
   const boundary = "gmail_intel_boundary";
-  
+
+  // Build From header using display name if available
+  const fromHeader = from?.displayName
+    ? `"${from.displayName}" <${from.email}>`
+    : from?.email ?? '';
+
   // Format the raw email data with correct boundaries
   const emailLines = [
+    ...(fromHeader ? [`From: ${fromHeader}`] : []),
     `To: ${to}`,
     `Subject: ${subject}`,
     "Content-Type: multipart/alternative; boundary=" + boundary,

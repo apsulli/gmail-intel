@@ -102,3 +102,24 @@ Likely causes of underlying Firestore error:
 `firebase deploy --only firestore` — deploys composite index for emails query.
 
 ## Status: RESOLVED (code fixes applied; firebase deploy still required)
+
+---
+
+# Debug Session: 2026-03-02 — Phase 7 Post-Ship Bugs
+
+## Issue 1: From Name ignores Gmail display name
+
+**Symptom:** Emails sent via tracked send show bare email address as sender, not display name.
+**Expected:** `"John Doe" <john@gmail.com>` in From field.
+**Actual:** No `From:` header → Gmail API uses raw address only.
+**Root cause:** `gmail.js` builds MIME with no `From:` header. `user.displayName` exists in `content.js` but never passed to `sendTrackedEmail`.
+**Fix:** Pass `from: user` to `sendTrackedEmail`; build `From: "Name" <email>` header in `gmail.js`.
+
+## Issue 2: Refresh not firing after send
+
+**Symptom:** Gmail Drafts badge and folder view stale after tracked send.
+**Root cause 1:** Refresh is inside `if (draftId)` block — when draftId is null, entire block (including refresh) is skipped.
+**Root cause 2:** `div[data-tooltip="Refresh"]` exact-match selector fails for localized Gmail.
+**Fix:** Move refresh outside `if (draftId)` so it always fires after 1.5s. Use `^=` starts-with selector: `div[data-tooltip^="Refresh"], button[aria-label^="Refresh"]`.
+
+## Status: RESOLVED
