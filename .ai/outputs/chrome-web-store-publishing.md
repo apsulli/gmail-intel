@@ -178,7 +178,9 @@ Google will ask you to justify each permission during submission. Use these expl
 | `storage` | Cache extension state locally |
 | `https://mail.google.com/*` | Content script access to run inside Gmail |
 | `https://gmail.googleapis.com/*` | Call the Gmail API to send emails on behalf of the user |
+| `https://*.firebaseio.com/*` | Access Firebase Realtime Database and Firestore for reading and writing email tracking data |
 | `https://*.googleapis.com/*` | Access Firebase Auth, Firestore, and other Google APIs |
+| **Host permissions (combined)** | The extension requires host access to `mail.google.com` to inject the tracking toggle UI into Gmail's compose window, `gmail.googleapis.com` to send emails via the Gmail API, `*.firebaseio.com` to read/write tracking data in Firestore, and `*.googleapis.com` to authenticate via Firebase Auth and access other Google APIs. All host permissions are scoped to Google-owned domains only — no third-party hosts are contacted. |
 
 ---
 
