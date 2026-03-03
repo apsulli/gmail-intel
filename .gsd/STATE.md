@@ -4,7 +4,8 @@
 
 - **Phase**: Phase 7 — Dashboard UX
 - **Task**: All tasks complete + post-ship polish complete
-- **Status**: Paused (2026-03-02)
+- **Status**: Active (resumed 2026-03-02)
+- **Note**: Added Phase 8 (Sidebar Look-and-Feel UX Improvements)
 
 ## Last Session Summary
 

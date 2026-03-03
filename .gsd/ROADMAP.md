@@ -44,11 +44,13 @@
 **Depends on**: Phase 4
 
 **Tasks**:
+
 - [ ] 5.1 — Fix draft deletion: switch to drafts.send flow with DOM draft ID extraction
 - [ ] 5.2 — Fix toggle button push: animate toggle left when sidebar opens
 - [ ] 5.3 — Per-recipient analytics: open count, click count, last open, last click per recipient in expanded row
 
 **Verification**:
+
 - [ ] Send a tracked reply-in-thread → no draft remains in Gmail Drafts
 - [ ] Open sidebar → toggle button moves left flush with sidebar edge, not on top of content
 - [ ] Expand an email row → each recipient shows individual open/click counts and timestamps
@@ -64,6 +66,7 @@
 **Scope**:
 
 Current model:
+
 ```
 emails/{emailId}           ← top-level, filtered by userId field
   userId, subject, recipients[], sentAt
@@ -72,6 +75,7 @@ emails/{emailId}           ← top-level, filtered by userId field
 ```
 
 Target model:
+
 ```
 users/{userId}/emails/{emailId}   ← user-scoped subcollection
   subject, recipients[], sentAt   ← userId field removed (redundant)
@@ -80,6 +84,7 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 ```
 
 **Tasks**:
+
 - [ ] 6.1 — Update `src/api/db.js`: change all Firestore paths from `emails/{id}` to `users/{userId}/emails/{id}`; add `userId` param to `subscribeToEvents` and `getEmailWithEvents`; remove `userId` field from written docs
 - [ ] 6.2 — Update `functions/index.js`: add `userId` query param to both `trackPixel` and `trackClick`; write events to `users/{userId}/emails/{emailId}/events`
 - [ ] 6.3 — Update `src/content.js`: include `userId` in pixel URL and click URL query params
@@ -90,6 +95,7 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 - [ ] 6.8 — Cutover: delete old `emails/` collection in Firestore console; deploy functions; build + reload extension; verify with a fresh tracked send
 
 **Verification**:
+
 - [ ] Send a tracked email → document appears at `users/{uid}/emails/{emailId}` in Firestore console, no doc at top-level `emails/`
 - [ ] Open dashboard → emails load correctly from new path
 - [ ] Expand email row → events load correctly (pixel open + link click both recorded via lookup)
@@ -105,11 +111,29 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 **Depends on**: Phase 6
 
 **Tasks**:
+
 - [ ] 7.1 — Weekly grouping: group email rows by calendar week (Sun–Sat in user's local timezone); render a sticky week header (e.g. "Week of Feb 24") between groups; determine week boundaries using `Intl` or `date-fns`
 - [ ] 7.2 — Click drill-down: in the expanded recipient row, replace the "Clicks: N" stat with a collapsible list of the actual URLs clicked (with click count per URL and timestamp of first/last click); source from `targetUrl` field on click events
 - [ ] 7.3 — Pagination: replace the hard-coded `limit(50)` in `subscribeToEmails` with a paginated fetch (load 20 at a time, "Load more" button at bottom of list); preserve real-time updates on the visible page
 
 **Verification**:
+
 - [ ] Dashboard shows week headers grouping emails correctly in user's local timezone
 - [ ] Expanding a recipient with clicks shows a list of URLs clicked, not just a count
 - [ ] "Load more" appears after 20 emails and loads the next 20 without losing live updates on existing rows
+
+---
+
+### Phase 8: Sidebar Look-and-Feel UX Improvements
+
+**Status**: ⬜ Not Started
+**Objective**: UX improvements for look-and-feel of the sidebar. Pink and black, dark theme, bubble letter header, more fun primary font. Match images in `.ai/assets` but keep it readable still. Overall make it seem slicker and cuter.
+**Depends on**: Phase 7
+
+**Tasks**:
+
+- [ ] TBD (run /plan-phase 8 to create)
+
+**Verification**:
+
+- TBD
