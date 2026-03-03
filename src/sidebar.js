@@ -1,6 +1,5 @@
-// Find Gmail's top-bar anchor element (Support ? or Settings gear).
-// Resolves when found, rejects after timeoutMs so the caller can fall back.
-// Tries multiple selectors because Gmail's attribute values vary by locale/version.
+// Find Gmail's Support (?) or Settings gear icon to use as a position anchor.
+// Resolves with the element when found; rejects after timeoutMs.
 function findToolbarAnchor(timeoutMs = 5000) {
   const selectors = [
     'div[data-tooltip="Support"]',
@@ -13,7 +12,6 @@ function findToolbarAnchor(timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
     const el = find();
     if (el) { resolve(el); return; }
-
     const timer = setTimeout(() => { obs.disconnect(); reject(); }, timeoutMs);
     const obs = new MutationObserver(() => {
       const el = find();
@@ -41,9 +39,15 @@ export function initSidebar() {
     fontFamily: "'Google Sans', Roboto, Arial, sans-serif",
   });
 
+  // Toggle is always a fixed-positioned overlay on document.body.
+  // We never inject into Gmail's DOM — toolbar containers have overflow:hidden
+  // and other layout rules that make injected children invisible.
+  // Instead we use getBoundingClientRect() on the anchor to position precisely.
   const toggle = document.createElement('div');
   toggle.id = 'gmail-intel-toggle';
   Object.assign(toggle.style, {
+    position: 'fixed',
+    zIndex: '10000',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -52,14 +56,15 @@ export function initSidebar() {
     borderRadius: '50%',
     cursor: 'pointer',
     fontSize: '20px',
-    flexShrink: '0',
     background: 'transparent',
     transition: 'background 0.15s',
+    // Offscreen until positioned — avoids flash in wrong location
+    top: '-100px',
+    right: '0',
   });
   toggle.title = 'Gmail Intel';
   toggle.textContent = '📊';
 
-  // Hover highlight matching Gmail's own toolbar icon buttons
   toggle.addEventListener('mouseover', () => { toggle.style.background = 'rgba(32,33,36,0.08)'; });
   toggle.addEventListener('mouseout',  () => { toggle.style.background = 'transparent'; });
 
@@ -69,23 +74,29 @@ export function initSidebar() {
   });
 
   document.body.appendChild(sidebar);
+  document.body.appendChild(toggle);
 
-  // Try to inject into Gmail's top bar before the Support/Settings icon.
-  // If the toolbar anchor isn't found within 5 s, fall back to a fixed
-  // floating button so the toggle is always reachable.
+  // Once the toolbar anchor is visible, snap the toggle into position next to it.
+  // Re-position on resize so it tracks correctly if the window changes.
   findToolbarAnchor().then((anchor) => {
-    anchor.parentElement.insertBefore(toggle, anchor);
+    const position = () => {
+      const r = anchor.getBoundingClientRect();
+      // Vertically centred on the anchor; placed 4px to its left
+      toggle.style.top   = Math.round(r.top + (r.height - 40) / 2) + 'px';
+      toggle.style.right = (window.innerWidth - r.left + 4) + 'px';
+    };
+    position();
+    window.addEventListener('resize', position);
   }).catch(() => {
+    // Toolbar anchor not found — fall back to a visible blue floating button
     Object.assign(toggle.style, {
-      position: 'fixed',
-      right: '16px',
+      top: 'auto',
       bottom: '80px',
+      right: '16px',
       background: '#1a73e8',
       color: 'white',
       boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-      zIndex: '10000',
     });
-    document.body.appendChild(toggle);
   });
 
   return sidebar;
