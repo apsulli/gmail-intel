@@ -3,19 +3,16 @@
 ## Current Position
 
 - **Phase**: Phase 7 — Dashboard UX
-- **Task**: Planning complete — 3 plans created
-- **Status**: Ready for execution (2026-03-02)
+- **Task**: All tasks complete
+- **Status**: Verified (2026-03-02)
 
 ## Last Session Summary
 
-- Executed all 4 Phase 6 plans (multi-tenant data model migration):
-  - 6.1: `src/api/db.js` → `users/{userId}/emails/{emailId}` paths + `emailLookup/{emailId}` write
-  - 6.2: `functions/index.js` → both Cloud Functions resolve userId via emailLookup lookup
-  - 6.3: `DashboardApp.jsx` → userId threaded into EmailRow; content.js verified correct
-  - 6.4: `firestore.rules` + `firestore.indexes.json` updated; all deployed to Firebase
-- Deployed Cloud Functions (trackPixel + trackClick both updated)
-- Deployed Firestore rules + deleted old composite index (`--force`)
-- Fixed post-send stale draft badge: after `DELETE_DRAFT_BY_ID`, now clicks Gmail's Refresh button (`div[data-tooltip="Refresh"]`) to sync Gmail's frontend state
+Phase 7 Dashboard UX executed successfully. 3 plans, 6 tasks completed.
+
+- 7.1: Weekly grouping — `getWeekStart`/`weekLabel` helpers; emails bucketed by Sun–Sat week; sticky headers between groups
+- 7.2: Click drill-down — `urlClicks` map in `buildRecipientStats`; collapsible URL list per recipient (truncated + hover tooltip)
+- 7.3: Pagination — `subscribeToEmails` parameterized (`limitCount=20`); "Load more" button increments by 20; ↺ refresh resets to 20
 
 ## In-Progress Work
 
@@ -54,6 +51,6 @@
 
 ## Next Steps
 
-1. `/execute 7` — execute plans 7.1 → 7.2 → 7.3
-2. Human verify: week headers visible, click drill-down works, load more / refresh works
-3. (Pending) Human end-to-end Phase 6 cutover verify (see `.gsd/phases/6/VERIFICATION.md`)
+1. Human verify: week headers visible in dashboard, click drill-down shows URLs, load more / refresh work
+2. (Pending) Human end-to-end Phase 6 cutover verify (see `.gsd/phases/6/VERIFICATION.md`)
+3. Decide on next phase (Chrome Web Store submission or further features)

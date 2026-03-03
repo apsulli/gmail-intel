@@ -100,7 +100,7 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 
 ### Phase 7: Dashboard UX — Weekly Grouping, Click Drill-Down & Pagination
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Upgrade the dashboard from a flat email list to a richer, more navigable UI: emails grouped by calendar week, click events drilled down to show the specific URLs clicked, and pagination so the list doesn't become unmanageable.
 **Depends on**: Phase 6
 
