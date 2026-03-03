@@ -2,9 +2,9 @@
 
 ## Current Position
 
-- **Phase**: Phase 6 — Complete + post-phase bug fixes done
-- **Task**: All done this session — Phase 6 executed + draft badge refresh fix
-- **Status**: Paused at 2026-03-02
+- **Phase**: Phase 7 — Dashboard UX
+- **Task**: Planning complete — 3 plans created
+- **Status**: Ready for execution (2026-03-02)
 
 ## Last Session Summary
 
@@ -54,10 +54,6 @@
 
 ## Next Steps
 
-1. Human end-to-end cutover verify:
-   - Reload extension in Chrome
-   - Send a tracked email → verify `users/{uid}/emails/{id}` + `emailLookup/{id}` in Firebase Console
-   - Open the email → verify event logged at `users/{uid}/emails/{id}/events/`
-   - Dashboard shows email + counts
-   - Delete old `emails/` collection in Firebase Console
-2. `/execute 7` — Dashboard UX (weekly grouping, click drill-down, pagination)
+1. `/execute 7` — execute plans 7.1 → 7.2 → 7.3
+2. Human verify: week headers visible, click drill-down works, load more / refresh works
+3. (Pending) Human end-to-end Phase 6 cutover verify (see `.gsd/phases/6/VERIFICATION.md`)

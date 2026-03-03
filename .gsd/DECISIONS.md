@@ -31,6 +31,32 @@
 
 ---
 
+## Phase 7 Decisions
+
+**Date:** 2026-03-02
+
+### Weekly Grouping (7.1)
+
+- **Week start:** Sunday (Sun–Sat boundaries)
+- **Header format:** `"Feb 22–Feb 28"` (date range, both ends explicit)
+- **Date library:** Vanilla JS + native `Intl`/`Date` — no `date-fns`. Week start computed as `date - date.getDay() days`. Range formatted with `.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })`.
+
+### Click Drill-Down (7.2)
+
+- **Chose:** Option A — collapsible list of URLs with count + first/last timestamp per URL
+- **URL display:** Truncated full URL (CSS `overflow: hidden; text-overflow: ellipsis`) with `title` attribute for full URL on hover
+- **Data source:** `targetUrl` field on `type === 'click'` events (already stored by Cloud Functions)
+
+### Pagination (7.3)
+
+- **Chose:** Option A — single `onSnapshot` with growing `limit` state
+- **Initial load:** 20 emails
+- **"Load more":** increases limit by 20 (re-subscribes with new limit)
+- **"Refresh" icon:** resets limit back to 20 (collapses to first page)
+- **Real-time:** all visible rows stay live since a single snapshot covers the full limit
+
+---
+
 ## Phase 4 Decisions
 
 **Date:** 2026-03-02
