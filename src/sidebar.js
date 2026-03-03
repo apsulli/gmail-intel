@@ -58,6 +58,44 @@ export function initSidebar() {
   Object.assign(content.style, { height: '100%', overflowY: 'auto' });
   sidebar.appendChild(content);
 
+  const closeTab = document.createElement('div');
+  Object.assign(closeTab.style, {
+    position: 'absolute',
+    left: '-28px',
+    top: '50%',
+    width: '28px',
+    height: '60px',
+    marginTop: '-30px',
+    background: 'var(--bg-card, #202020)',
+    border: '2px solid var(--accent-primary, #FF1493)',
+    borderRight: 'none',
+    borderTopLeftRadius: '12px',
+    borderBottomLeftRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: 'var(--accent-primary, #FF1493)',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    zIndex: '10',
+    boxShadow: '-4px 0 8px rgba(0,0,0,0.4)',
+    transition: 'background 0.2s, color 0.2s'
+  });
+  closeTab.title = 'Close Sidebar';
+  closeTab.textContent = '›';
+  
+  closeTab.addEventListener('mouseover', () => {
+    closeTab.style.background = 'var(--accent-primary, #FF1493)';
+    closeTab.style.color = '#FFFFFF';
+  });
+  closeTab.addEventListener('mouseout', () => {
+    closeTab.style.background = 'var(--bg-card, #202020)';
+    closeTab.style.color = 'var(--accent-primary, #FF1493)';
+  });
+  
+  sidebar.appendChild(closeTab);
+
   const toggle = document.createElement('div');
   toggle.id = 'gmail-intel-toggle';
   Object.assign(toggle.style, {
@@ -94,6 +132,7 @@ export function initSidebar() {
   const isOpen = () => sidebar.style.transform === 'translateX(0px)' || sidebar.style.transform === 'translateX(0)';
 
   toggle.addEventListener('click', () => isOpen() ? closeSidebar() : openSidebar());
+  closeTab.addEventListener('click', () => closeSidebar());
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen()) closeSidebar();

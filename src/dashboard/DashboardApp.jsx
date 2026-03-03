@@ -202,7 +202,7 @@ export default function DashboardApp({ user, onClose }) {
   }
 
   return (
-    <div style={{ fontFamily: "var(--font-body, 'Nunito', sans-serif)", background: 'var(--bg-sidebar, #121212)', minHeight: '100vh', color: 'var(--text-main, #FFFFFF)' }}>
+    <div style={{ position: 'relative', fontFamily: "var(--font-body, 'Nunito', sans-serif)", background: 'var(--bg-sidebar, #121212)', minHeight: '100vh', color: 'var(--text-main, #FFFFFF)' }}>
       <div style={{ padding: '12px 16px', borderBottom: '2px solid var(--accent-primary, #FF1493)', background: 'var(--bg-sidebar, #121212)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-main, #FFFFFF)', fontFamily: "var(--font-header, 'Fredoka', sans-serif)", letterSpacing: '0.5px' }}>👀 Gmail Intel</h2>
@@ -222,21 +222,6 @@ export default function DashboardApp({ user, onClose }) {
               onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted, #5f6368)'}
             >
               ↺
-            </button>
-          )}
-          {onClose && (
-            <button
-              onClick={onClose}
-              title="Close"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted, #5f6368)', fontSize: '16px', padding: '4px',
-                lineHeight: 1, transition: 'color 0.2s',
-              }}
-              onMouseOver={e => e.currentTarget.style.color = 'var(--accent-primary, #FF1493)'}
-              onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted, #5f6368)'}
-            >
-              ✕
             </button>
           )}
         </div>

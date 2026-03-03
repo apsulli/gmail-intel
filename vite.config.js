@@ -8,4 +8,7 @@ export default defineConfig({
     react(),
     crx({ manifest }),
   ],
+  build: {
+    assetsInlineLimit: 1048576, // 1MB - inline all fonts to base64
+  }
 });

@@ -102,9 +102,57 @@ A GitHub Gist or a page on Firebase Hosting (`firebase deploy --only hosting`) w
 2. Click **Add new item**
 3. Upload `gmail-intel.zip`
 4. Complete the **Store Listing** tab:
-   - Title, short description, full description
    - Category: **Productivity**
    - Language: English
+
+   **Title** (45 char max):
+   ```
+   Gmail Intel — Email Open & Click Tracker
+   ```
+
+   **Short Description** (132 char max):
+   ```
+   Track when recipients open your emails and click your links. Per-email opt-in toggle, real-time event log, all inside Gmail.
+   ```
+
+   **Full Description**:
+   ```
+   Gmail Intel adds lightweight email tracking to Gmail — no external dashboards, no complicated setup. When you compose an email, a "Track Email" toggle appears next to the Send button. Enable it and Gmail Intel handles the rest.
+
+   HOW IT WORKS
+
+   • Tracking pixel — A tiny invisible image is appended to each outgoing email. When a recipient loads the email, the image request is logged as an "open" event.
+   • Link rewriting — Every link in the email body is rewritten to pass through a tracking redirect. When a recipient clicks a link, the click is logged and they are instantly redirected to the original URL.
+   • Per-recipient tracking — If you send to multiple recipients, each one gets a unique tracking ID so you can see exactly who opened and who clicked.
+
+   OPT-IN BY DEFAULT, OFF WHEN YOU WANT
+
+   Tracking is controlled per email with a simple checkbox. Disable it and the email is sent normally through Gmail with zero modification. No tracking code is injected unless you explicitly opt in.
+
+   YOUR DATA, YOUR FIREBASE PROJECT
+
+   All tracking data is stored in your own Firebase Firestore project — not on a third-party server. Each email record includes the subject, recipients, and a timestamped event log of opens and clicks. Firestore security rules ensure that only you can access your own data.
+
+   Data stored per event:
+   – Event type (open or click)
+   – Timestamp
+   – Recipient identifier
+   – User agent and IP address
+   – Target URL (for clicks)
+
+   PERMISSIONS EXPLAINED
+
+   • Identity — Authenticates you with Google so the extension can send emails via the Gmail API and sign in to Firebase.
+   • Scripting & ActiveTab — Injects the tracking toggle UI into Gmail's compose window.
+   • Storage — Caches local extension state.
+   • Host permissions (mail.google.com, googleapis.com) — Required to run inside Gmail and call Google APIs.
+
+   BUILT WITH
+
+   Chrome Extension Manifest V3, Firebase Auth, Firestore, Cloud Functions, Vite + CRXJS.
+
+   This extension is intended for personal use and small teams. It is not affiliated with or endorsed by Google.
+   ```
 5. Upload assets in the **Store Listing** tab:
    - Extension icon (128×128)
    - Promotional tile (440×280)
