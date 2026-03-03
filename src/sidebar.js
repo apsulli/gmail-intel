@@ -147,25 +147,14 @@ export function initSidebar() {
   });
 
   const updateSidebarOffset = () => {
-    const els = document.elementsFromPoint(window.innerWidth - 1, window.innerHeight / 2);
-    let el = null;
-    for (const e of els) {
-      if (e.id !== 'gmail-intel-sidebar' && (!e.id || !e.id.includes('gmail-intel'))) {
-        el = e;
-        break;
-      }
-    }
+    const sidePanel = document.querySelector('[aria-label="Side panel"]');
     let offset = 0;
-    if (el) {
-      let curr = el;
-      while (curr && curr !== document.body) {
-        if (curr.getBoundingClientRect) {
-          const r = curr.getBoundingClientRect();
-          if (r.right >= window.innerWidth - 10 && r.width > 20 && r.width < 500 && r.height > window.innerHeight * 0.5) {
-            offset = Math.max(offset, r.width);
-          }
-        }
-        curr = curr.parentElement;
+    if (sidePanel) {
+      const r = sidePanel.getBoundingClientRect();
+      // If the side panel is expanded (width typically > 100px), sit flush against its left side.
+      // Otherwise list flush to the right of the window.
+      if (r.width > 100 && r.left > 0) {
+        offset = window.innerWidth - r.left;
       }
     }
     sidebar.style.right = offset + 'px';
