@@ -1,5 +1,55 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 (Phase 7 Execution + UX Polish)
+
+### Objective
+
+Execute Phase 7 Dashboard UX plans, fix post-ship bugs, polish toggle icon positioning.
+
+### Accomplished
+
+**Phase 7 execution:**
+- 7.1: Weekly grouping — `getWeekStart`/`weekLabel`; sticky week headers; emails bucketed Sun–Sat
+- 7.2: Click drill-down — `urlClicks` in `buildRecipientStats`; collapsible URL list per recipient
+- 7.3: Pagination — `subscribeToEmails(limitCount)`; Load More (+20); ↺ reset to 20
+
+**Bug fixes:**
+- From Name: MIME `From:` header now uses `user.displayName` from Firebase auth
+- Gmail refresh: `clickGmailRefresh()` always fires 1.5s post-send (decoupled from draftId)
+- Firestore WebChannel transport errors: `experimentalForceLongPolling: true`
+
+**Sidebar polish:**
+- Toggle moved to Gmail top bar, left of the "?" Support icon
+- Polling `getBoundingClientRect` (setInterval, 10s timeout) to handle unpainted elements
+- Hidden element disambiguation: `querySelectorAll` + `r.top < 150` filter
+- Sidebar z-index overlay fixed (2147483647)
+- X close button in React tree via `onClose` prop through `mountDashboard → DashboardApp`
+- Esc key closes sidebar
+- Final toggle offset: `(r.left - 40 - 52)` to clear the support icon
+
+### Verification
+
+- [x] Phase 7 plans all committed
+- [x] From Name fix in gmail.js
+- [x] Gmail refresh always fires
+- [x] Firestore long-polling active
+- [x] Toggle visible in Gmail top bar
+- [x] X button and Esc close sidebar
+- [ ] Toggle clear of "?" icon — needs visual verify after rebuild (last shift was -52)
+- [ ] End-to-end tracked email flow smoke test
+
+### Paused Because
+
+Natural break point — user called it a day.
+
+### Handoff Notes
+
+- Rebuild + reload extension first
+- Verify toggle is fully clear of "?" icon (may need ±10px tuning on the left offset)
+- All core features working; ready for Chrome Web Store submission planning
+
+---
+
 ## Session: 2026-03-02 (Phase 6 Execution + Draft Badge Fix)
 
 ### Objective
