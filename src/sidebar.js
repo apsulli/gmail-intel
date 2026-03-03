@@ -21,22 +21,6 @@ function findToolbarAnchor(timeoutMs = 5000) {
   });
 }
 
-// Wait until an element has non-zero layout dimensions (rAF poll).
-// The MutationObserver fires when the element enters the DOM, but the
-// browser may not have laid it out yet — getBoundingClientRect() returns
-// all zeros until the next paint cycle completes.
-function waitForLayout(el, timeoutMs = 3000) {
-  return new Promise((resolve, reject) => {
-    const deadline = Date.now() + timeoutMs;
-    const check = () => {
-      const r = el.getBoundingClientRect();
-      if (r.width > 0 || r.height > 0) { resolve(el); return; }
-      if (Date.now() > deadline) { reject(); return; }
-      requestAnimationFrame(check);
-    };
-    requestAnimationFrame(check);
-  });
-}
 
 export function initSidebar() {
   const sidebar = document.createElement('div');
@@ -95,16 +79,18 @@ export function initSidebar() {
 
   // Once the toolbar anchor is visible, snap the toggle into position next to it.
   // Re-position on resize so it tracks correctly if the window changes.
-  findToolbarAnchor()
-    .then(waitForLayout)
-    .then((anchor) => {
+  findToolbarAnchor().then((anchor) => {
     const position = () => {
       const r = anchor.getBoundingClientRect();
       // Vertically centred on the anchor; placed 4px to its left
       toggle.style.top   = Math.round(r.top + (r.height - 40) / 2) + 'px';
       toggle.style.right = (window.innerWidth - r.left + 4) + 'px';
     };
-    position();
+    // setTimeout yields to the browser's layout pipeline before reading rects.
+    // The MutationObserver resolves before Gmail has finished painting, so
+    // getBoundingClientRect() returns zeros if called synchronously.
+    setTimeout(position, 0);
+    setTimeout(position, 300); // safety retry in case 0ms wasn't enough
     window.addEventListener('resize', position);
   }).catch(() => {
     // Toolbar anchor not found — fall back to a visible blue floating button
