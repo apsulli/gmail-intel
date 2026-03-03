@@ -21,10 +21,10 @@ function weekLabel(date) {
 function Stat({ label, value }) {
   return (
     <div>
-      <span style={{ fontSize: '10px', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+      <span style={{ fontSize: '10px', color: 'var(--text-muted, #A0A0A0)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
         {label}
       </span>
-      <div style={{ fontSize: '12px', color: value ? '#202124' : '#9aa0a6' }}>
+      <div style={{ fontSize: '12px', color: value ? 'var(--text-main, #FFFFFF)' : 'var(--text-muted, #A0A0A0)' }}>
         {value ?? '—'}
       </div>
     </div>
@@ -90,25 +90,25 @@ function EmailRow({ email, userId, onSelect, selected }) {
       onClick={() => onSelect(selected ? null : email)}
       style={{
         padding: '10px 12px',
-        borderBottom: '1px solid #e0e0e0',
+        borderBottom: '1px solid var(--bg-sidebar, #121212)',
         cursor: 'pointer',
-        background: selected ? '#e8f0fe' : 'transparent',
+        background: selected ? 'var(--bg-card, #202020)' : 'transparent',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', fontWeight: 500, color: '#202124', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-main, #FFFFFF)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {email.subject || '(no subject)'}
         </span>
-        <span style={{ fontSize: '11px', color: '#5f6368', marginLeft: '8px', flexShrink: 0 }}>{dateStr}</span>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted, #A0A0A0)', marginLeft: '8px', flexShrink: 0 }}>{dateStr}</span>
       </div>
       <div style={{ marginTop: '4px', display: 'flex', gap: '12px' }}>
-        <span style={{ fontSize: '11px', color: opens > 0 ? '#1a73e8' : '#9aa0a6' }}>
+        <span style={{ fontSize: '11px', color: opens > 0 ? 'var(--accent-secondary, #00FFFF)' : 'var(--text-muted, #A0A0A0)' }}>
           👁 {opens} {opens === 1 ? 'open' : 'opens'}
         </span>
-        <span style={{ fontSize: '11px', color: clicks > 0 ? '#1a73e8' : '#9aa0a6' }}>
+        <span style={{ fontSize: '11px', color: clicks > 0 ? 'var(--accent-secondary, #00FFFF)' : 'var(--text-muted, #A0A0A0)' }}>
           🔗 {clicks} {clicks === 1 ? 'click' : 'clicks'}
         </span>
-        <span style={{ fontSize: '11px', color: '#9aa0a6' }}>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted, #A0A0A0)' }}>
           {email.recipients?.length ?? 0} recipient{email.recipients?.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -120,16 +120,17 @@ function EmailRow({ email, userId, onSelect, selected }) {
       {selected && !eventsError && (() => {
         const stats = buildRecipientStats(email.recipients ?? [], events);
         return (
-          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #dadce0' }}>
+        return (
+          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #333' }}>
             {(email.recipients ?? []).map(r => {
               const s = stats[r.id] ?? { opens: 0, clicks: 0, lastOpen: null, lastClick: null, urlClicks: {} };
               return (
                 <div key={r.id} style={{
                   marginBottom: '8px',
                   paddingBottom: '8px',
-                  borderBottom: '1px solid #f1f3f4',
+                  borderBottom: '1px solid #333',
                 }}>
-                  <div style={{ fontSize: '12px', fontWeight: 500, color: '#202124', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-main, #FFFFFF)', marginBottom: '4px' }}>
                     {r.email}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
@@ -138,8 +139,8 @@ function EmailRow({ email, userId, onSelect, selected }) {
                       onClick={e => { e.stopPropagation(); setExpandedRecipient(expandedRecipient === r.id ? null : r.id); }}
                       style={{ cursor: s.clicks > 0 ? 'pointer' : 'default' }}
                     >
-                      <span style={{ fontSize: '10px', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Clicks</span>
-                      <div style={{ fontSize: '12px', color: s.clicks > 0 ? '#1a73e8' : '#9aa0a6' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted, #A0A0A0)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Clicks</span>
+                      <div style={{ fontSize: '12px', color: s.clicks > 0 ? 'var(--accent-secondary, #00FFFF)' : 'var(--text-muted, #A0A0A0)' }}>
                         {s.clicks > 0 ? `${s.clicks} ▾` : '—'}
                       </div>
                     </div>
@@ -154,7 +155,7 @@ function EmailRow({ email, userId, onSelect, selected }) {
                             title={url}
                             style={{
                               fontSize: '11px',
-                              color: '#1a73e8',
+                              color: 'var(--accent-secondary, #00FFFF)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -163,7 +164,7 @@ function EmailRow({ email, userId, onSelect, selected }) {
                           >
                             {url}
                           </div>
-                          <div style={{ fontSize: '10px', color: '#9aa0a6' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted, #A0A0A0)' }}>
                             {data.count}× · first {formatTs(data.first)} · last {formatTs(data.last)}
                           </div>
                         </div>
@@ -280,12 +281,15 @@ export default function DashboardApp({ user, onClose }) {
               padding: '6px 12px',
               fontSize: '11px',
               fontWeight: 600,
-              color: '#5f6368',
-              background: '#f1f3f4',
-              borderBottom: '1px solid #e0e0e0',
+              color: 'var(--accent-primary, #FF1493)',
+              background: 'var(--bg-card, #202020)',
+              borderBottom: '1px solid #333',
               position: 'sticky',
               top: 0,
               zIndex: 1,
+              fontFamily: "var(--font-header, 'Fredoka', sans-serif)",
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
             }}>
               {label}
             </div>
@@ -306,9 +310,11 @@ export default function DashboardApp({ user, onClose }) {
           <button
             onClick={() => setEmailLimit(prev => prev + 20)}
             style={{
-              fontSize: '12px', color: '#1a73e8', background: 'none',
-              border: '1px solid #dadce0', borderRadius: '4px',
-              padding: '6px 16px', cursor: 'pointer',
+              fontSize: '13px', color: 'var(--bg-sidebar, #121212)', background: 'var(--accent-secondary, #00FFFF)',
+              border: 'none', borderRadius: '999px',
+              padding: '8px 20px', cursor: 'pointer',
+              fontWeight: 600, fontFamily: "var(--font-header, 'Fredoka', sans-serif)",
+              boxShadow: '0 2px 8px rgba(0, 255, 255, 0.4)'
             }}
           >
             Load more
