@@ -2,10 +2,10 @@
 // Resolves with the element when found; rejects after timeoutMs.
 function findToolbarAnchor(timeoutMs = 5000) {
   const selectors = [
-    'div[data-tooltip="Support"]',
     'a[aria-label="Support"]',
-    'div[data-tooltip^="Setting"]',
+    'div[data-tooltip="Support"]',
     'a[aria-label^="Setting"]',
+    'div[data-tooltip^="Setting"]',
   ];
   const find = () => selectors.reduce((hit, sel) => hit || document.querySelector(sel), null);
 
@@ -18,6 +18,23 @@ function findToolbarAnchor(timeoutMs = 5000) {
       if (el) { clearTimeout(timer); obs.disconnect(); resolve(el); }
     });
     obs.observe(document.body, { childList: true, subtree: true });
+  });
+}
+
+// Wait until an element has non-zero layout dimensions (rAF poll).
+// The MutationObserver fires when the element enters the DOM, but the
+// browser may not have laid it out yet — getBoundingClientRect() returns
+// all zeros until the next paint cycle completes.
+function waitForLayout(el, timeoutMs = 3000) {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    const check = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 || r.height > 0) { resolve(el); return; }
+      if (Date.now() > deadline) { reject(); return; }
+      requestAnimationFrame(check);
+    };
+    requestAnimationFrame(check);
   });
 }
 
@@ -78,7 +95,9 @@ export function initSidebar() {
 
   // Once the toolbar anchor is visible, snap the toggle into position next to it.
   // Re-position on resize so it tracks correctly if the window changes.
-  findToolbarAnchor().then((anchor) => {
+  findToolbarAnchor()
+    .then(waitForLayout)
+    .then((anchor) => {
     const position = () => {
       const r = anchor.getBoundingClientRect();
       // Vertically centred on the anchor; placed 4px to its left
