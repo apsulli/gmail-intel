@@ -1,26 +1,36 @@
-// Find Gmail's Support (?) or Settings gear icon to use as a position anchor.
-// Resolves with the element when found; rejects after timeoutMs.
-function findToolbarAnchor(timeoutMs = 5000) {
+// Find the VISIBLE Support (?) anchor in Gmail's toolbar.
+// Gmail has multiple a[aria-label="Support"] elements — the first in DOM order
+// is hidden/offscreen (top ~1352px). We need the one actually in the toolbar
+// (visible, near top of viewport). Poll until found or timeout.
+function findVisibleToolbarAnchor(timeoutMs = 10000) {
   const selectors = [
     'a[aria-label="Support"]',
     'div[data-tooltip="Support"]',
     'a[aria-label^="Setting"]',
     'div[data-tooltip^="Setting"]',
   ];
-  const find = () => selectors.reduce((hit, sel) => hit || document.querySelector(sel), null);
+
+  const findVisible = () => {
+    for (const sel of selectors) {
+      for (const el of document.querySelectorAll(sel)) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0 && r.top >= 0 && r.top < 150) return el;
+      }
+    }
+    return null;
+  };
 
   return new Promise((resolve, reject) => {
-    const el = find();
+    const el = findVisible();
     if (el) { resolve(el); return; }
-    const timer = setTimeout(() => { obs.disconnect(); reject(); }, timeoutMs);
-    const obs = new MutationObserver(() => {
-      const el = find();
-      if (el) { clearTimeout(timer); obs.disconnect(); resolve(el); }
-    });
-    obs.observe(document.body, { childList: true, subtree: true });
+    const deadline = Date.now() + timeoutMs;
+    const poll = setInterval(() => {
+      const el = findVisible();
+      if (el) { clearInterval(poll); resolve(el); return; }
+      if (Date.now() > deadline) { clearInterval(poll); reject(); }
+    }, 100);
   });
 }
-
 
 export function initSidebar() {
   const sidebar = document.createElement('div');
@@ -40,10 +50,6 @@ export function initSidebar() {
     fontFamily: "'Google Sans', Roboto, Arial, sans-serif",
   });
 
-  // Toggle is always a fixed-positioned overlay on document.body.
-  // We never inject into Gmail's DOM — toolbar containers have overflow:hidden
-  // and other layout rules that make injected children invisible.
-  // Instead we use getBoundingClientRect() on the anchor to position precisely.
   const toggle = document.createElement('div');
   toggle.id = 'gmail-intel-toggle';
   Object.assign(toggle.style, {
@@ -59,8 +65,7 @@ export function initSidebar() {
     fontSize: '20px',
     background: 'transparent',
     transition: 'background 0.15s',
-    // Offscreen until positioned — avoids flash in wrong location
-    top: '-100px',
+    top: '-100px', // offscreen until positioned
     right: '0',
   });
   toggle.title = 'Gmail Intel';
@@ -77,31 +82,18 @@ export function initSidebar() {
   document.body.appendChild(sidebar);
   document.body.appendChild(toggle);
 
-  // Once the toolbar anchor is visible, snap the toggle into position next to it.
-  // Re-position on resize so it tracks correctly if the window changes.
-  findToolbarAnchor().then((anchor) => {
+  // findVisibleToolbarAnchor already guarantees the element has real dimensions
+  // and is in the toolbar area, so we can read its rect immediately on resolve.
+  findVisibleToolbarAnchor().then((anchor) => {
     const applyPosition = () => {
       const r = anchor.getBoundingClientRect();
-      if (r.width === 0 && r.height === 0) return; // not laid out yet
       toggle.style.top   = Math.round(r.top + (r.height - 40) / 2) + 'px';
       toggle.style.right = (window.innerWidth - r.left + 4) + 'px';
     };
-
-    // Gmail's Google Bar takes an unpredictable amount of time to lay out
-    // after the element appears in the DOM. Poll every 100ms until the anchor
-    // has real dimensions, then snap into position and stop polling.
-    const poll = setInterval(() => {
-      const r = anchor.getBoundingClientRect();
-      if (r.width > 0 || r.height > 0) {
-        clearInterval(poll);
-        applyPosition();
-      }
-    }, 100);
-    setTimeout(() => clearInterval(poll), 10000); // give up after 10s
-
+    applyPosition();
     window.addEventListener('resize', applyPosition);
   }).catch(() => {
-    // Toolbar anchor not found — fall back to a visible blue floating button
+    // Fallback: visible blue floating button
     Object.assign(toggle.style, {
       top: 'auto',
       bottom: '80px',
