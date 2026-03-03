@@ -2,9 +2,9 @@
 
 ## Current Position
 
-- **Phase**: Phase 7 — Dashboard UX
-- **Task**: All tasks complete + post-ship polish complete
-- **Status**: Active (resumed 2026-03-02)
+- **Phase**: Phase 8
+- **Task**: Planning complete
+- **Status**: Ready for execution
 - **Note**: Added Phase 8 (Sidebar Look-and-Feel UX Improvements)
 
 ## Last Session Summary
@@ -61,6 +61,4 @@ Phase 7 executed. Post-ship bugs fixed. Toggle icon positioning polished.
 
 ## Next Steps
 
-1. Rebuild + reload extension; verify toggle is fully clear of the "?" icon
-2. End-to-end smoke test: send tracked email → open/click events appear in sidebar
-3. Decide next phase: Chrome Web Store submission or additional features
+1. /execute 8 — run all plans
