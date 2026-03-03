@@ -120,7 +120,6 @@ function EmailRow({ email, userId, onSelect, selected }) {
       {selected && !eventsError && (() => {
         const stats = buildRecipientStats(email.recipients ?? [], events);
         return (
-        return (
           <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #333' }}>
             {(email.recipients ?? []).map(r => {
               const s = stats[r.id] ?? { opens: 0, clicks: 0, lastOpen: null, lastClick: null, urlClicks: {} };
