@@ -184,13 +184,14 @@ export default function DashboardApp({ user }) {
   const [emails, setEmails] = useState(null);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState(null);
+  const [emailLimit, setEmailLimit] = useState(20);
 
   useEffect(() => {
     if (!user) return;
     setError(null);
-    const unsub = subscribeToEmails(user.uid, setEmails, setError);
+    const unsub = subscribeToEmails(user.uid, setEmails, setError, emailLimit);
     return unsub;
-  }, [user?.uid]);
+  }, [user?.uid, emailLimit]);
 
   if (!user) {
     return (
@@ -202,9 +203,24 @@ export default function DashboardApp({ user }) {
 
   return (
     <div style={{ fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-        <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#202124' }}>Gmail Intel</h2>
-        <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#5f6368' }}>Tracked email activity</p>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#202124' }}>Gmail Intel</h2>
+          <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#5f6368' }}>Tracked email activity</p>
+        </div>
+        {emailLimit > 20 && (
+          <button
+            onClick={() => setEmailLimit(20)}
+            title="Reset to latest 20"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: '#5f6368', fontSize: '16px', padding: '4px',
+              lineHeight: 1,
+            }}
+          >
+            ↺
+          </button>
+        )}
       </div>
 
       {error && (
@@ -266,6 +282,20 @@ export default function DashboardApp({ user }) {
           </div>
         ));
       })()}
+      {emails !== null && emails.length === emailLimit && (
+        <div style={{ padding: '12px 16px', textAlign: 'center', borderTop: '1px solid #e0e0e0' }}>
+          <button
+            onClick={() => setEmailLimit(prev => prev + 20)}
+            style={{
+              fontSize: '12px', color: '#1a73e8', background: 'none',
+              border: '1px solid #dadce0', borderRadius: '4px',
+              padding: '6px 16px', cursor: 'pointer',
+            }}
+          >
+            Load more
+          </button>
+        </div>
+      )}
     </div>
   );
 }

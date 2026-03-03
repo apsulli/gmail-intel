@@ -10,11 +10,11 @@ import { firebaseConfig } from "../firebase-config.js";
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-export function subscribeToEmails(userId, callback, onError) {
+export function subscribeToEmails(userId, callback, onError, limitCount = 20) {
   const q = query(
     collection(db, "users", userId, "emails"),
     orderBy("sentAt", "desc"),
-    limit(50)
+    limit(limitCount)
   );
   return onSnapshot(q,
     (snapshot) => {
