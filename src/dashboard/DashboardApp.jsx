@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
 import { subscribeToEmails, subscribeToEvents } from '../api/db.js';
 
+// Returns the Sunday that starts the week containing `date`
+function getWeekStart(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay()); // getDay() returns 0 for Sunday
+  return d;
+}
+
+// Returns "Feb 22–Feb 28" style label for the week containing `date`
+function weekLabel(date) {
+  const start = getWeekStart(date);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `${fmt(start)}–${fmt(end)}`;
+}
+
 function Stat({ label, value }) {
   return (
     <div>
@@ -28,7 +45,7 @@ function formatTs(date) {
 function buildRecipientStats(recipients, events) {
   const stats = {};
   for (const r of recipients) {
-    stats[r.id] = { opens: 0, clicks: 0, lastOpen: null, lastClick: null };
+    stats[r.id] = { opens: 0, clicks: 0, lastOpen: null, lastClick: null, urlClicks: {} };
   }
   for (const e of events) {
     const s = stats[e.recipientId];
@@ -40,6 +57,11 @@ function buildRecipientStats(recipients, events) {
     } else if (e.type === 'click') {
       s.clicks++;
       if (!s.lastClick || ts > s.lastClick) s.lastClick = ts;
+      const url = e.targetUrl ?? '(unknown)';
+      if (!s.urlClicks[url]) s.urlClicks[url] = { count: 0, first: ts, last: ts };
+      s.urlClicks[url].count++;
+      if (ts && (!s.urlClicks[url].first || ts < s.urlClicks[url].first)) s.urlClicks[url].first = ts;
+      if (ts && (!s.urlClicks[url].last || ts > s.urlClicks[url].last)) s.urlClicks[url].last = ts;
     }
   }
   return stats;
@@ -48,6 +70,7 @@ function buildRecipientStats(recipients, events) {
 function EmailRow({ email, userId, onSelect, selected }) {
   const [events, setEvents] = useState([]);
   const [eventsError, setEventsError] = useState(null);
+  const [expandedRecipient, setExpandedRecipient] = useState(null);
 
   useEffect(() => {
     setEventsError(null);
@@ -99,7 +122,7 @@ function EmailRow({ email, userId, onSelect, selected }) {
         return (
           <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #dadce0' }}>
             {(email.recipients ?? []).map(r => {
-              const s = stats[r.id] ?? { opens: 0, clicks: 0, lastOpen: null, lastClick: null };
+              const s = stats[r.id] ?? { opens: 0, clicks: 0, lastOpen: null, lastClick: null, urlClicks: {} };
               return (
                 <div key={r.id} style={{
                   marginBottom: '8px',
@@ -111,10 +134,42 @@ function EmailRow({ email, userId, onSelect, selected }) {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
                     <Stat label="Opens" value={s.opens || null} />
-                    <Stat label="Clicks" value={s.clicks || null} />
+                    <div
+                      onClick={e => { e.stopPropagation(); setExpandedRecipient(expandedRecipient === r.id ? null : r.id); }}
+                      style={{ cursor: s.clicks > 0 ? 'pointer' : 'default' }}
+                    >
+                      <span style={{ fontSize: '10px', color: '#9aa0a6', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Clicks</span>
+                      <div style={{ fontSize: '12px', color: s.clicks > 0 ? '#1a73e8' : '#9aa0a6' }}>
+                        {s.clicks > 0 ? `${s.clicks} ▾` : '—'}
+                      </div>
+                    </div>
                     <Stat label="Last open" value={formatTs(s.lastOpen)} />
                     <Stat label="Last click" value={formatTs(s.lastClick)} />
                   </div>
+                  {expandedRecipient === r.id && s.clicks > 0 && (
+                    <div style={{ marginTop: '6px', paddingLeft: '4px' }}>
+                      {Object.entries(s.urlClicks).map(([url, data]) => (
+                        <div key={url} style={{ marginBottom: '4px' }}>
+                          <div
+                            title={url}
+                            style={{
+                              fontSize: '11px',
+                              color: '#1a73e8',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: '260px',
+                            }}
+                          >
+                            {url}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#9aa0a6' }}>
+                            {data.count}× · first {formatTs(data.first)} · last {formatTs(data.last)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -171,15 +226,46 @@ export default function DashboardApp({ user }) {
           No tracked emails yet. Enable "Track Email" when composing.
         </div>
       )}
-      {emails !== null && emails.map(email => (
-        <EmailRow
-          key={email.id}
-          email={email}
-          userId={user.uid}
-          selected={selected?.id === email.id}
-          onSelect={setSelected}
-        />
-      ))}
+      {emails !== null && (() => {
+        // Build ordered week buckets (emails are already sorted sentAt desc)
+        const buckets = [];
+        const seen = {};
+        for (const email of emails) {
+          const sentAt = email.sentAt?.toDate?.() ?? new Date();
+          const label = weekLabel(sentAt);
+          if (!seen[label]) {
+            seen[label] = true;
+            buckets.push({ label, emails: [] });
+          }
+          buckets[buckets.length - 1].emails.push(email);
+        }
+        return buckets.map(({ label, emails: group }) => (
+          <div key={label}>
+            <div style={{
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#5f6368',
+              background: '#f1f3f4',
+              borderBottom: '1px solid #e0e0e0',
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+            }}>
+              {label}
+            </div>
+            {group.map(email => (
+              <EmailRow
+                key={email.id}
+                email={email}
+                userId={user.uid}
+                selected={selected?.id === email.id}
+                onSelect={setSelected}
+              />
+            ))}
+          </div>
+        ));
+      })()}
     </div>
   );
 }
