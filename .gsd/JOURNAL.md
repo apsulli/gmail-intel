@@ -1,5 +1,36 @@
 # JOURNAL.md
 
+## Session: 2026-03-02 (Phase 8 Execution + UX Polish)
+
+### Objective
+
+Execute Phase 8 UX improvements, add pull-out close button, inline fonts, and correctly offset against Gmail Side Panel.
+
+### Accomplished
+
+- Executed Plans 8.1, 8.2, 8.3 applying dark mode variables and new fonts.
+- Built-in fonts via Vite (`assetsInlineLimit`) to prevent Gmail proxying issues.
+- Exchanged the static 'X' close button for an interactive '›' / '‹' tab on the left edge of the sidebar.
+- Implemented offset checking (`document.querySelector('[aria-label="Side panel"]')`) so the extension panel rests flush beside Gmail's addon side panel.
+
+### Verification
+
+- [x] Fonts are rendering via base64 inlined config.
+- [x] Toggle arrow swaps glyphs properly.
+- [x] extension sits flush to Gmail's right panel.
+- [ ] Offset mechanism currently jumps briefly when the side panel is toggled, requires polish later.
+
+### Paused Because
+
+User requested pause, acceptable for now.
+
+### Handoff Notes
+
+- Review offset jumpiness when resuming if UI polish is requested.
+- Ready for publishing/packaging otherwise.
+
+---
+
 ## Session: 2026-03-02 (Phase 7 Execution + UX Polish)
 
 ### Objective
@@ -179,35 +210,5 @@ User requested pause. All Phase 5 bugs resolved and verified.
 
 ---
 
-## Session: 2026-03-02 (Phase 5 Planning)
-
-### Objective
-
-Fix post-Wave-1 bugs, plan Phase 5.
-
-### Accomplished
-
-- Fixed 4 bugs: sidebar timing, toggle position, live dashboard data, draft discard broadened
-- Fixed dashboard "Loading…": added error handling to `subscribeToEmails`, surfaced Firestore index error in UI
-- Switched draft deletion to Gmail Drafts API (`DELETE_DRAFT_BY_SUBJECT`) — still failing (see blockers)
-- Bumped version to 2.2.0, rebuilt
-- Created `.ai/outputs/chrome-web-store-publishing.md`
-- Added Phase 5 to ROADMAP with 3 full execution plans (5.1, 5.2, 5.3)
-
-### Verification
-
-- [x] Build passes at 2.2.0
-- [ ] Draft deletion still failing — plan 5.1 redesigns the approach
-- [ ] Firestore index not deployed — user needs `firebase deploy --only firestore`
-- [ ] Toggle overlap fix pending (plan 5.2)
-- [ ] Per-recipient analytics pending (plan 5.3)
-
-### Paused Because
-
-User requested pause. Phase 5 fully planned, ready to execute next session.
-
-### Handoff Notes
-
-- Run `firebase deploy --only firestore` FIRST to fix dashboard loading
-- Then `/execute 5` to run plans 5.1 → 5.2 → 5.3
-- Draft deletion root cause: Gmail search index latency. Plan 5.1 switches to `drafts.send`
+> **📦 Older entries archived** — See `.gsd/journal/` for historical sessions.
+> Run `/archive-journal` to archive when this file grows beyond 5 sessions.
