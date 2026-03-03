@@ -71,16 +71,23 @@ export function initSidebar() {
     borderRadius: '50%',
     cursor: 'pointer',
     fontSize: '20px',
-    background: 'transparent',
-    transition: 'background 0.15s',
+    background: 'var(--bg-card, #202020)',
+    border: '2px solid var(--accent-primary, #FF1493)',
+    transition: 'transform 0.15s, box-shadow 0.15s',
     top: '-100px',
     left: '0',
   });
   toggle.title = 'Gmail Intel';
-  toggle.textContent = '📊';
+  toggle.textContent = '👀';
 
-  toggle.addEventListener('mouseover', () => { toggle.style.background = 'rgba(32,33,36,0.08)'; });
-  toggle.addEventListener('mouseout',  () => { toggle.style.background = 'transparent'; });
+  toggle.addEventListener('mouseover', () => { 
+    toggle.style.transform = 'scale(1.1)'; 
+    toggle.style.boxShadow = '0 0 8px var(--accent-primary, #FF1493)';
+  });
+  toggle.addEventListener('mouseout',  () => { 
+    toggle.style.transform = 'scale(1)'; 
+    toggle.style.boxShadow = 'none';
+  });
 
   const openSidebar  = () => { sidebar.style.transform = 'translateX(0)'; };
   const closeSidebar = () => { sidebar.style.transform = 'translateX(100%)'; };
@@ -101,7 +108,7 @@ export function initSidebar() {
       // Place toggle immediately left of the Support icon with a 12px gap.
       // Use the anchor's aria-label to confirm we have the right element.
       toggle.style.top  = Math.round(r.top + (r.height - 40) / 2) + 'px';
-      toggle.style.left = (r.left - 40 - 12) + 'px';
+      toggle.style.left = (r.left - 40 - 52) + 'px';
     };
     applyPosition();
     window.addEventListener('resize', applyPosition);

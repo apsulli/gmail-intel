@@ -202,11 +202,11 @@ export default function DashboardApp({ user, onClose }) {
   }
 
   return (
-    <div style={{ fontFamily: "'Google Sans', Roboto, Arial, sans-serif" }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e0e0e0', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ fontFamily: "var(--font-body, 'Nunito', sans-serif)", background: 'var(--bg-sidebar, #121212)', minHeight: '100vh', color: 'var(--text-main, #FFFFFF)' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '2px solid var(--accent-primary, #FF1493)', background: 'var(--bg-sidebar, #121212)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#202124' }}>Gmail Intel</h2>
-          <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#5f6368' }}>Tracked email activity</p>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--text-main, #FFFFFF)', fontFamily: "var(--font-header, 'Fredoka', sans-serif)", letterSpacing: '0.5px' }}>👀 Gmail Intel</h2>
+          <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted, #A0A0A0)' }}>Tracked email activity</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {emailLimit > 20 && (
@@ -215,9 +215,11 @@ export default function DashboardApp({ user, onClose }) {
               title="Reset to latest 20"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: '#5f6368', fontSize: '16px', padding: '4px',
-                lineHeight: 1,
+                color: 'var(--text-muted, #5f6368)', fontSize: '16px', padding: '4px',
+                lineHeight: 1, transition: 'color 0.2s',
               }}
+              onMouseOver={e => e.currentTarget.style.color = 'var(--accent-primary, #FF1493)'}
+              onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted, #5f6368)'}
             >
               ↺
             </button>
@@ -228,9 +230,11 @@ export default function DashboardApp({ user, onClose }) {
               title="Close"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: '#5f6368', fontSize: '16px', padding: '4px',
-                lineHeight: 1,
+                color: 'var(--text-muted, #5f6368)', fontSize: '16px', padding: '4px',
+                lineHeight: 1, transition: 'color 0.2s',
               }}
+              onMouseOver={e => e.currentTarget.style.color = 'var(--accent-primary, #FF1493)'}
+              onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted, #5f6368)'}
             >
               ✕
             </button>
