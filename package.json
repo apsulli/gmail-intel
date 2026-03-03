@@ -1,14 +1,17 @@
 {
   "name": "gmail-intel",
-  "version": "2.5.0",
+  "version": "2.7.0",
   "description": "Gmail Tracking Extension",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "zip": "cd dist && zip -r ../zip/gmail-intel.zip . && cd .. && open -R zip/gmail-intel.zip",
     "serve": "vite preview"
   },
   "dependencies": {
+    "@fontsource/fredoka": "^5.2.10",
+    "@fontsource/nunito": "^5.2.7",
     "firebase": "^10.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

@@ -1,0 +1,14 @@
+@import "@fontsource/fredoka";
+@import "@fontsource/nunito";
+
+:root,
+#gmail-intel-sidebar {
+  --bg-sidebar: #121212;
+  --bg-card: #202020;
+  --text-main: #ffffff;
+  --text-muted: #a0a0a0;
+  --accent-primary: #ff1493;
+  --accent-secondary: #00ffff;
+  --font-header: "Fredoka", sans-serif;
+  --font-body: "Nunito", sans-serif;
+}
