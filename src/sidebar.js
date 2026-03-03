@@ -80,18 +80,26 @@ export function initSidebar() {
   // Once the toolbar anchor is visible, snap the toggle into position next to it.
   // Re-position on resize so it tracks correctly if the window changes.
   findToolbarAnchor().then((anchor) => {
-    const position = () => {
+    const applyPosition = () => {
       const r = anchor.getBoundingClientRect();
-      // Vertically centred on the anchor; placed 4px to its left
+      if (r.width === 0 && r.height === 0) return; // not laid out yet
       toggle.style.top   = Math.round(r.top + (r.height - 40) / 2) + 'px';
       toggle.style.right = (window.innerWidth - r.left + 4) + 'px';
     };
-    // setTimeout yields to the browser's layout pipeline before reading rects.
-    // The MutationObserver resolves before Gmail has finished painting, so
-    // getBoundingClientRect() returns zeros if called synchronously.
-    setTimeout(position, 0);
-    setTimeout(position, 300); // safety retry in case 0ms wasn't enough
-    window.addEventListener('resize', position);
+
+    // Gmail's Google Bar takes an unpredictable amount of time to lay out
+    // after the element appears in the DOM. Poll every 100ms until the anchor
+    // has real dimensions, then snap into position and stop polling.
+    const poll = setInterval(() => {
+      const r = anchor.getBoundingClientRect();
+      if (r.width > 0 || r.height > 0) {
+        clearInterval(poll);
+        applyPosition();
+      }
+    }, 100);
+    setTimeout(() => clearInterval(poll), 10000); // give up after 10s
+
+    window.addEventListener('resize', applyPosition);
   }).catch(() => {
     // Toolbar anchor not found — fall back to a visible blue floating button
     Object.assign(toggle.style, {
