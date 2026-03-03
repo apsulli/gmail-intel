@@ -82,8 +82,8 @@ export function initSidebar() {
     boxShadow: '-4px 0 8px rgba(0,0,0,0.4)',
     transition: 'background 0.2s, color 0.2s'
   });
-  closeTab.title = 'Close Sidebar';
-  closeTab.textContent = '›';
+  closeTab.title = 'Open Sidebar';
+  closeTab.textContent = '‹';
   
   closeTab.addEventListener('mouseover', () => {
     closeTab.style.background = 'var(--accent-primary, #FF1493)';
@@ -127,16 +127,50 @@ export function initSidebar() {
     toggle.style.boxShadow = 'none';
   });
 
-  const openSidebar  = () => { sidebar.style.transform = 'translateX(0)'; };
-  const closeSidebar = () => { sidebar.style.transform = 'translateX(100%)'; };
+  const openSidebar  = () => {
+    sidebar.style.transform = 'translateX(0)';
+    closeTab.textContent = '›';
+    closeTab.title = 'Close Sidebar';
+  };
+  const closeSidebar = () => {
+    sidebar.style.transform = 'translateX(100%)';
+    closeTab.textContent = '‹';
+    closeTab.title = 'Open Sidebar';
+  };
   const isOpen = () => sidebar.style.transform === 'translateX(0px)' || sidebar.style.transform === 'translateX(0)';
 
   toggle.addEventListener('click', () => isOpen() ? closeSidebar() : openSidebar());
-  closeTab.addEventListener('click', () => closeSidebar());
+  closeTab.addEventListener('click', () => isOpen() ? closeSidebar() : openSidebar());
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen()) closeSidebar();
   });
+
+  const updateSidebarOffset = () => {
+    const els = document.elementsFromPoint(window.innerWidth - 1, window.innerHeight / 2);
+    let el = null;
+    for (const e of els) {
+      if (e.id !== 'gmail-intel-sidebar' && (!e.id || !e.id.includes('gmail-intel'))) {
+        el = e;
+        break;
+      }
+    }
+    let offset = 0;
+    if (el) {
+      let curr = el;
+      while (curr && curr !== document.body) {
+        if (curr.getBoundingClientRect) {
+          const r = curr.getBoundingClientRect();
+          if (r.right >= window.innerWidth - 10 && r.width > 20 && r.width < 500 && r.height > window.innerHeight * 0.5) {
+            offset = Math.max(offset, r.width);
+          }
+        }
+        curr = curr.parentElement;
+      }
+    }
+    sidebar.style.right = offset + 'px';
+  };
+  setInterval(updateSidebarOffset, 250);
 
   document.body.appendChild(sidebar);
   document.body.appendChild(toggle);
