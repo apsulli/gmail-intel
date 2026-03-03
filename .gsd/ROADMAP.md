@@ -126,7 +126,7 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 
 ### Phase 8: Sidebar Look-and-Feel UX Improvements
 
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: UX improvements for look-and-feel of the sidebar. Pink and black, dark theme, bubble letter header, more fun primary font. Match images in `.ai/assets` but keep it readable still. Overall make it seem slicker and cuter.
 **Depends on**: Phase 7
 
