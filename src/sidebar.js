@@ -1,6 +1,6 @@
 // Find the VISIBLE Support (?) anchor in Gmail's toolbar.
-// Gmail has multiple a[aria-label="Support"] elements — the first in DOM order
-// is hidden/offscreen. We need the one actually in the toolbar (top < 150px).
+// Gmail has multiple elements matching these selectors; filter to the one
+// actually in the toolbar (visible, top < 150px).
 function findVisibleToolbarAnchor(timeoutMs = 10000) {
   const selectors = [
     'a[aria-label="Support"]',
@@ -31,6 +31,9 @@ function findVisibleToolbarAnchor(timeoutMs = 10000) {
   });
 }
 
+// Returns { container, close }.
+// container — the inner div that React should mount into.
+// close     — call to collapse the sidebar.
 export function initSidebar() {
   const sidebar = document.createElement('div');
   sidebar.id = 'gmail-intel-sidebar';
@@ -42,37 +45,24 @@ export function initSidebar() {
     width: '360px',
     background: '#fff',
     boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
-    zIndex: '2147483647',        // max z-index — overlays Gmail's own toolbar
+    zIndex: '2147483647',
     transform: 'translateX(100%)',
     transition: 'transform 0.3s ease',
-    overflowY: 'auto',
     fontFamily: "'Google Sans', Roboto, Arial, sans-serif",
   });
 
-  // Close button (X) in upper-right of sidebar
-  const closeBtn = document.createElement('button');
-  Object.assign(closeBtn.style, {
-    position: 'absolute',
-    top: '10px',
-    right: '12px',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '18px',
-    color: '#5f6368',
-    lineHeight: '1',
-    padding: '4px',
-    zIndex: '1',
-  });
-  closeBtn.textContent = '✕';
-  closeBtn.title = 'Close';
-  sidebar.appendChild(closeBtn);
+  // Inner div: the React root. React owns only this element.
+  // Keeping it separate from sidebar means any siblings we add to sidebar
+  // (e.g. a close button) won't be wiped when React mounts.
+  const content = document.createElement('div');
+  Object.assign(content.style, { height: '100%', overflowY: 'auto' });
+  sidebar.appendChild(content);
 
   const toggle = document.createElement('div');
   toggle.id = 'gmail-intel-toggle';
   Object.assign(toggle.style, {
     position: 'fixed',
-    zIndex: '2147483646',        // just below sidebar
+    zIndex: '2147483646',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -83,7 +73,7 @@ export function initSidebar() {
     fontSize: '20px',
     background: 'transparent',
     transition: 'background 0.15s',
-    top: '-100px',               // offscreen until positioned
+    top: '-100px',
     left: '0',
   });
   toggle.title = 'Gmail Intel';
@@ -97,9 +87,7 @@ export function initSidebar() {
   const isOpen = () => sidebar.style.transform === 'translateX(0px)' || sidebar.style.transform === 'translateX(0)';
 
   toggle.addEventListener('click', () => isOpen() ? closeSidebar() : openSidebar());
-  closeBtn.addEventListener('click', closeSidebar);
 
-  // Escape key closes the sidebar
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && isOpen()) closeSidebar();
   });
@@ -110,15 +98,14 @@ export function initSidebar() {
   findVisibleToolbarAnchor().then((anchor) => {
     const applyPosition = () => {
       const r = anchor.getBoundingClientRect();
-      // Vertically centred on the anchor.
-      // Horizontally: toggle's right edge sits 8px left of the anchor's left edge.
+      // Place toggle immediately left of the Support icon with a 12px gap.
+      // Use the anchor's aria-label to confirm we have the right element.
       toggle.style.top  = Math.round(r.top + (r.height - 40) / 2) + 'px';
-      toggle.style.left = (r.left - 40 - 8) + 'px';
+      toggle.style.left = (r.left - 40 - 12) + 'px';
     };
     applyPosition();
     window.addEventListener('resize', applyPosition);
   }).catch(() => {
-    // Fallback: visible blue floating button
     Object.assign(toggle.style, {
       top: 'auto',
       left: 'auto',
@@ -130,5 +117,5 @@ export function initSidebar() {
     });
   });
 
-  return sidebar;
+  return { container: content, close: closeSidebar };
 }

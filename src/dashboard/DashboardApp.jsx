@@ -180,7 +180,7 @@ function EmailRow({ email, userId, onSelect, selected }) {
   );
 }
 
-export default function DashboardApp({ user }) {
+export default function DashboardApp({ user, onClose }) {
   const [emails, setEmails] = useState(null);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState(null);
@@ -208,19 +208,34 @@ export default function DashboardApp({ user }) {
           <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#202124' }}>Gmail Intel</h2>
           <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#5f6368' }}>Tracked email activity</p>
         </div>
-        {emailLimit > 20 && (
-          <button
-            onClick={() => setEmailLimit(20)}
-            title="Reset to latest 20"
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: '#5f6368', fontSize: '16px', padding: '4px',
-              lineHeight: 1,
-            }}
-          >
-            ↺
-          </button>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {emailLimit > 20 && (
+            <button
+              onClick={() => setEmailLimit(20)}
+              title="Reset to latest 20"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#5f6368', fontSize: '16px', padding: '4px',
+                lineHeight: 1,
+              }}
+            >
+              ↺
+            </button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              title="Close"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#5f6368', fontSize: '16px', padding: '4px',
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (

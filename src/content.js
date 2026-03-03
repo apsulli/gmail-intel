@@ -29,9 +29,9 @@ function waitForGmailReady() {
 
 (async () => {
   await waitForGmailReady();
-  const container = initSidebar();
+  const { container, close } = initSidebar();
   const user = await initDashboardAuth();
-  mountDashboard(container, user);
+  mountDashboard(container, user, close);
 })();
 
 const TRACKING_STATE = new WeakMap();
