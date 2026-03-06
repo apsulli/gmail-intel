@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gmail Intel Mail Tracker Extension",
-  "version": "2.8.2",
+  "version": "2.8.3",
   "description": "Secure Gmail Tracking Extension",
   "permissions": [
     "identity",
@@ -37,7 +37,19 @@
       "https://www.googleapis.com/auth/userinfo.profile"
     ]
   },
+  "icons": {
+    "16": "icons/icon128.png",
+    "32": "icons/icon128.png",
+    "48": "icons/icon128.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
-    "default_popup": "index.html"
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "icons/icon128.png",
+      "32": "icons/icon128.png",
+      "48": "icons/icon128.png",
+      "128": "icons/icon128.png"
+    }
   }
 }
