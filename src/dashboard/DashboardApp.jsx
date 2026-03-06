@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { subscribeToEmails, subscribeToEvents } from '../api/db.js';
+import { markSeen, getSeenMap } from '../api/seen.js';
 
 // Returns the Sunday that starts the week containing `date`
 function getWeekStart(date) {
@@ -67,7 +68,7 @@ function buildRecipientStats(recipients, events) {
   return stats;
 }
 
-function EmailRow({ email, userId, onSelect, selected }) {
+function EmailRow({ email, userId, onSelect, selected, isSeen, onUnreadChange }) {
   const [events, setEvents] = useState([]);
   const [eventsError, setEventsError] = useState(null);
   const [expandedRecipient, setExpandedRecipient] = useState(null);
@@ -80,6 +81,12 @@ function EmailRow({ email, userId, onSelect, selected }) {
 
   const opens = events.filter(e => e.type === 'open').length;
   const clicks = events.filter(e => e.type === 'click').length;
+
+  useEffect(() => {
+    const hasActivity = opens > 0 || clicks > 0;
+    onUnreadChange?.(email.id, hasActivity && !isSeen);
+  }, [opens, clicks, isSeen]);
+
   const sentAt = email.sentAt?.toDate?.();
   const dateStr = sentAt
     ? sentAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -96,7 +103,7 @@ function EmailRow({ email, userId, onSelect, selected }) {
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-main, #FFFFFF)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '13px', fontWeight: (opens > 0 || clicks > 0) && !isSeen ? 700 : 500, color: 'var(--text-main, #FFFFFF)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {email.subject || '(no subject)'}
         </span>
         <span style={{ fontSize: '11px', color: 'var(--text-muted, #A0A0A0)', marginLeft: '8px', flexShrink: 0 }}>{dateStr}</span>
@@ -185,6 +192,8 @@ export default function DashboardApp({ user, onClose }) {
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState(null);
   const [emailLimit, setEmailLimit] = useState(20);
+  const [seenMap, setSeenMap] = useState({});
+  const [unreadSet, setUnreadSet] = useState(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -192,6 +201,34 @@ export default function DashboardApp({ user, onClose }) {
     const unsub = subscribeToEmails(user.uid, setEmails, setError, emailLimit);
     return unsub;
   }, [user?.uid, emailLimit]);
+
+  useEffect(() => {
+    getSeenMap().then(setSeenMap);
+  }, []);
+
+  useEffect(() => {
+    chrome.runtime.sendMessage({ type: 'SET_BADGE', count: unreadSet.size });
+    return () => {
+      chrome.runtime.sendMessage({ type: 'SET_BADGE', count: 0 });
+    };
+  }, [unreadSet]);
+
+  const handleSelect = (email) => {
+    setSelected(email);
+    if (email) {
+      markSeen(email.id);
+      setSeenMap(prev => ({ ...prev, [email.id]: true }));
+    }
+  };
+
+  const handleUnreadChange = (emailId, isUnread) => {
+    setUnreadSet(prev => {
+      const next = new Set(prev);
+      if (isUnread) next.add(emailId);
+      else next.delete(emailId);
+      return next;
+    });
+  };
 
   if (!user) {
     return (
@@ -283,7 +320,9 @@ export default function DashboardApp({ user, onClose }) {
                 email={email}
                 userId={user.uid}
                 selected={selected?.id === email.id}
-                onSelect={setSelected}
+                onSelect={handleSelect}
+                isSeen={!!seenMap[email.id]}
+                onUnreadChange={handleUnreadChange}
               />
             ))}
           </div>
