@@ -172,11 +172,19 @@ export function initSidebar() {
   // ── Sidebar offset (tracks Gmail side panel) ──────────────────────────────
   // [role="main"] resizes when Gmail's side panel opens/closes — ResizeObserver
   // fires immediately with no polling lag.
+  //
+  // Gmail always has a narrow icon strip (~16px) to the right of [role="main"]
+  // that is NOT the expanded side panel. We only want to offset the sidebar for
+  // an actually-expanded panel (≥24px gap). Below that threshold we treat it as
+  // zero so the sidebar/tab sit flush against the viewport right edge.
+  const SIDE_PANEL_THRESHOLD = 24;
+
   const updateSidebarOffset = () => {
     const main = document.querySelector('[role="main"]');
     if (!main) return;
     const { right } = main.getBoundingClientRect();
-    currentRightOffset = Math.max(0, window.innerWidth - right);
+    const rawGap = Math.max(0, window.innerWidth - right);
+    currentRightOffset = rawGap >= SIDE_PANEL_THRESHOLD ? rawGap : 0;
     if (sidebarIsOpen) sidebar.style.right = currentRightOffset + 'px';
     updateCloseTabRight();
   };
