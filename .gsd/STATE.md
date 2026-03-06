@@ -23,4 +23,4 @@
 ## Next Steps
 
 1. Deploy functions dedup fix (`firebase login --reauth` then `npm run deploy` in /functions)
-2. /execute 10 — Durable sidebar positioning (plan ready at .gsd/phases/10/10.1-PLAN.md)
+2. Chrome Web Store submission (all phases complete)

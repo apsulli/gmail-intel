@@ -162,7 +162,7 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 
 ### Phase 10: Durable Sidebar Positioning
 
-**Status**: Not Started
+**Status**: ✅ Complete
 **Objective**: Ensure the Gmail Intel sidebar dynamically shifts position when Gmail's native side panel is opened or closed, so the two never overlap. The current one-time offset check jumps and is not reactive to panel state changes.
 **Depends on**: Phase 9
 
