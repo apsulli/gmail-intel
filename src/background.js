@@ -46,6 +46,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'SET_BADGE') {
+    const count = message.count ?? 0;
+    const text = count > 0 ? String(count) : '';
+    chrome.action.setBadgeText({ text });
+    if (count > 0) {
+      chrome.action.setBadgeBackgroundColor({ color: '#FF1493' });
+    }
+    sendResponse({ ok: true });
+    return true;
+  }
+
   // Handle the Gmail API Send request internally to bypass content script CORS
   if (message.type === 'SEND_EMAIL') {
     const { token, payload } = message;
