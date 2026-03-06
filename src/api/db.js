@@ -11,7 +11,14 @@ const app = initializeApp(firebaseConfig);
 // Chrome extension content scripts run in a sandboxed context where Firestore's
 // default WebChannel transport fails. Force long-polling to avoid the
 // "WebChannelConnection RPC Listen stream transport errored" noise.
-export const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+// Chrome extension content scripts cannot use WebChannel or fetch-based
+// streams — both are blocked by the extension sandbox. Force XHR long
+// polling only: experimentalForceLongPolling disables WebChannel,
+// useFetchStreams:false disables the fetch transport added in Firebase 10.x.
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+});
 
 export function subscribeToEmails(userId, callback, onError, limitCount = 20) {
   const q = query(
