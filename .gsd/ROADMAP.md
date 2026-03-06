@@ -137,3 +137,41 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 **Verification**:
 
 - TBD
+
+---
+
+### Phase 9: Notification Badge & Unread Email Bolding
+
+**Status**: ✅ Complete
+**Objective**: Show a badge count on the extension icon (the eyes emoji) when there are new opens or clicks on sent emails that the user hasn't reviewed yet. Bold email subject rows in the dashboard until the user expands/reads them.
+**Depends on**: Phase 8
+
+**Tasks**:
+
+- [ ] 9.1 — Track "seen" state: store a `lastSeenAt` timestamp per email in `chrome.storage.local` (keyed by emailId), updated when the user expands a row in the dashboard.
+- [ ] 9.2 — Badge logic: in the background service worker, subscribe to new events via Firestore (or poll on dashboard open); compute count of emails with events newer than their `lastSeenAt`; call `chrome.action.setBadgeText({ text: N })` and `chrome.action.setBadgeBackgroundColor({ color: '#e91e8c' })`.
+- [ ] 9.3 — Bold unread rows: in `DashboardApp.jsx`, compare each email's latest event timestamp against `lastSeenAt` from chrome.storage; render subject in bold (`font-weight: 700`) if unseen events exist; clear bold on row expand.
+
+**Verification**:
+
+- [ ] Send a tracked email, have recipient open it → badge appears on extension icon with count "1"
+- [ ] Open the dashboard and expand the email row → badge clears, subject un-bolds
+- [ ] Multiple emails with new events → badge count reflects total unread
+
+---
+
+### Phase 10: Durable Sidebar Positioning
+
+**Status**: Not Started
+**Objective**: Ensure the Gmail Intel sidebar dynamically shifts position when Gmail's native side panel is opened or closed, so the two never overlap. The current one-time offset check jumps and is not reactive to panel state changes.
+**Depends on**: Phase 9
+
+**Tasks**:
+
+- [ ] TBD (run /plan-phase 10 to create)
+
+**Verification**:
+
+- [ ] Open Gmail Intel sidebar → it sits flush to the left of Gmail's side panel (no overlap)
+- [ ] Toggle Gmail's side panel open/closed → Gmail Intel sidebar smoothly adjusts position without jumping
+- [ ] Gmail side panel is absent → Gmail Intel sidebar sits flush at the right edge of the viewport

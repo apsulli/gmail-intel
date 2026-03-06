@@ -2,30 +2,25 @@
 
 ## Current Position
 
-- **Phase**: Phase 8
-- **Task**: Sidebar Look-and-Feel UX Improvements
-- **Status**: Paused at 2026-03-02 22:08
+- **Phase**: Phase 9 (complete)
+- **Task**: All tasks complete
+- **Status**: Verified
 
 ## Last Session Summary
 
-Executed Phase 8 plans (UX improvements).
-Integrated fonts correctly via Vite inline assets, replaced the "X" button with a pull-out tab that toggles dynamically (›/‹), and implemented auto-offset checking against Gmail's side panel using aria-label. The offset works functionally though it has minor jumping behaviors.
+- Fixed duplicate open/click events: Cloud Functions now use deterministic Firestore doc IDs (time-bucket dedup). Deploy pending (firebase login --reauth needed).
+- Phase 9 executed: seen state + bold unread rows + extension icon badge.
+- Phase 10 planned: durable sidebar positioning (ResizeObserver).
 
 ## In-Progress Work
 
-- None, Phase 8 complete.
-
-- Files modified: src/sidebar.js, src/dashboard/DashboardApp.jsx, vite.config.js
-- Tests status: build complete
+- functions/index.js dedup fix is written but NOT yet deployed (firebase auth expired).
 
 ## Blockers
 
-- None currently.
-
-## Context Dump
-
-- Offset mechanism: `document.querySelector('[aria-label="Side panel"]')` adjusts the extension's right margin. User noted it jumps but is acceptable. Note this for future revisions.
+- Firebase credentials expired: `cd functions && firebase login --reauth && npm run deploy`
 
 ## Next Steps
 
-1. Chrome Web Store submission & publishing
+1. Deploy functions dedup fix (`firebase login --reauth` then `npm run deploy` in /functions)
+2. /execute 10 — Durable sidebar positioning (plan ready at .gsd/phases/10/10.1-PLAN.md)
