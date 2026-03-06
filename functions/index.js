@@ -1,8 +1,17 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const crypto = require("crypto");
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// Returns a deterministic event doc ID so duplicate requests within the
+// same time bucket overwrite rather than duplicate.
+function dedupeId(type, recipientId, bucketMs, extra = "") {
+  const bucket = Math.floor(Date.now() / bucketMs);
+  const raw = `${type}_${recipientId}_${bucket}_${extra}`;
+  return crypto.createHash("md5").update(raw).digest("hex");
+}
 
 // 1x1 transparent GIF buffer
 const TRANSPARENT_GIF_BUFFER = Buffer.from(
@@ -27,11 +36,14 @@ exports.trackPixel = functions.https.onRequest(async (req, res) => {
         return respondWithGif(res);
       }
       const userId = lookupSnap.data().userId;
+      // 60-second dedup bucket: Google Image Proxy pre-fetches the pixel on
+      // email arrival AND again when the user opens — both within seconds.
+      const eventId = dedupeId("open", recipientId, 60_000);
       await db
         .collection("users").doc(userId)
         .collection("emails").doc(emailId)
-        .collection("events")
-        .add({
+        .collection("events").doc(eventId)
+        .set({
           type: "open",
           recipientId: recipientId,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -59,11 +71,15 @@ exports.trackClick = functions.https.onRequest(async (req, res) => {
       const lookupSnap = await db.collection("emailLookup").doc(emailId).get();
       if (lookupSnap.exists) {
         const userId = lookupSnap.data().userId;
+        // 5-second dedup bucket per URL: catches double-clicks and scanner
+        // pre-fetches; a genuine re-click after 5 s gets its own event.
+        const urlHash = crypto.createHash("md5").update(targetUrl).digest("hex").slice(0, 8);
+        const eventId = dedupeId("click", recipientId, 5_000, urlHash);
         await db
           .collection("users").doc(userId)
           .collection("emails").doc(emailId)
-          .collection("events")
-          .add({
+          .collection("events").doc(eventId)
+          .set({
             type: "click",
             recipientId: recipientId,
             targetUrl: targetUrl,
