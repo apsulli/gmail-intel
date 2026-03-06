@@ -35,37 +35,45 @@ function findVisibleToolbarAnchor(timeoutMs = 10000) {
 // container — the inner div that React should mount into.
 // close     — call to collapse the sidebar.
 export function initSidebar() {
+  // ── Sidebar panel ────────────────────────────────────────────────────────
+  // Open/close is controlled via the `right` CSS property (not transform).
+  // When closed: right = -360px (completely off-screen, no leaking content).
+  // When open:   right = currentRightOffset (flush beside Gmail side panel).
+  // overflow:hidden ensures content never bleeds into the closed position.
   const sidebar = document.createElement('div');
   sidebar.id = 'gmail-intel-sidebar';
   Object.assign(sidebar.style, {
     position: 'fixed',
     top: '0',
-    right: '0',
+    right: '-360px',
     height: '100vh',
     width: '360px',
-    background: '#fff',
-    boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
+    background: 'var(--bg-sidebar, #121212)',
+    boxShadow: '-4px 0 16px rgba(0,0,0,0.5)',
     zIndex: '2147483647',
-    transform: 'translateX(100%)',
-    transition: 'transform 0.3s ease, right 0.3s ease',
+    transition: 'right 0.3s ease',
+    borderRadius: '12px 0 0 12px',
+    overflow: 'hidden',
     fontFamily: "'Google Sans', Roboto, Arial, sans-serif",
   });
 
   // Inner div: the React root. React owns only this element.
-  // Keeping it separate from sidebar means any siblings we add to sidebar
-  // (e.g. a close button) won't be wiped when React mounts.
   const content = document.createElement('div');
   Object.assign(content.style, { height: '100%', overflowY: 'auto' });
   sidebar.appendChild(content);
 
+  // ── Pull-out tab ──────────────────────────────────────────────────────────
+  // Kept as a SIBLING of sidebar (not a child) so it is never clipped by
+  // sidebar's overflow:hidden and always remains visible at the screen edge.
+  // Its `right` property is animated in sync with the sidebar.
   const closeTab = document.createElement('div');
   Object.assign(closeTab.style, {
-    position: 'absolute',
-    left: '-28px',
+    position: 'fixed',
     top: '50%',
+    right: '0px',   // set dynamically by updateCloseTabRight()
     width: '28px',
     height: '60px',
-    marginTop: '-30px',
+    transform: 'translateY(-50%)',
     background: 'var(--bg-card, #202020)',
     border: '2px solid var(--accent-primary, #FF1493)',
     borderRight: 'none',
@@ -78,13 +86,13 @@ export function initSidebar() {
     color: 'var(--accent-primary, #FF1493)',
     fontSize: '20px',
     fontWeight: 'bold',
-    zIndex: '10',
+    zIndex: '2147483648',
     boxShadow: '-4px 0 8px rgba(0,0,0,0.4)',
-    transition: 'background 0.2s, color 0.2s'
+    transition: 'right 0.3s ease, background 0.2s, color 0.2s',
   });
   closeTab.title = 'Open Sidebar';
   closeTab.textContent = '‹';
-  
+
   closeTab.addEventListener('mouseover', () => {
     closeTab.style.background = 'var(--accent-primary, #FF1493)';
     closeTab.style.color = '#FFFFFF';
@@ -93,9 +101,8 @@ export function initSidebar() {
     closeTab.style.background = 'var(--bg-card, #202020)';
     closeTab.style.color = 'var(--accent-primary, #FF1493)';
   });
-  
-  sidebar.appendChild(closeTab);
 
+  // ── Toggle button (in Gmail toolbar) ─────────────────────────────────────
   const toggle = document.createElement('div');
   toggle.id = 'gmail-intel-toggle';
   Object.assign(toggle.style, {
@@ -118,42 +125,60 @@ export function initSidebar() {
   toggle.title = 'Gmail Intel';
   toggle.textContent = '👀';
 
-  toggle.addEventListener('mouseover', () => { 
-    toggle.style.transform = 'scale(1.1)'; 
+  toggle.addEventListener('mouseover', () => {
+    toggle.style.transform = 'scale(1.1)';
     toggle.style.boxShadow = '0 0 8px var(--accent-primary, #FF1493)';
   });
-  toggle.addEventListener('mouseout',  () => { 
-    toggle.style.transform = 'scale(1)'; 
+  toggle.addEventListener('mouseout', () => {
+    toggle.style.transform = 'scale(1)';
     toggle.style.boxShadow = 'none';
   });
 
-  const openSidebar  = () => {
-    sidebar.style.transform = 'translateX(0)';
+  // ── State & position helpers ──────────────────────────────────────────────
+  let currentRightOffset = 0;
+  let sidebarIsOpen = false;
+
+  // closeTab sits at the sidebar's left edge when open, at the screen edge when closed.
+  // With right-based coordinates: sidebar left edge = currentRightOffset + 360 from right.
+  const updateCloseTabRight = () => {
+    closeTab.style.right = sidebarIsOpen
+      ? (currentRightOffset + 360) + 'px'
+      : currentRightOffset + 'px';
+  };
+
+  const openSidebar = () => {
+    sidebarIsOpen = true;
+    sidebar.style.right = currentRightOffset + 'px';
     closeTab.textContent = '›';
     closeTab.title = 'Close Sidebar';
+    updateCloseTabRight();
   };
+
   const closeSidebar = () => {
-    sidebar.style.transform = 'translateX(100%)';
+    sidebarIsOpen = false;
+    sidebar.style.right = '-360px';
     closeTab.textContent = '‹';
     closeTab.title = 'Open Sidebar';
+    updateCloseTabRight();
   };
-  const isOpen = () => sidebar.style.transform === 'translateX(0px)' || sidebar.style.transform === 'translateX(0)';
 
-  toggle.addEventListener('click', () => isOpen() ? closeSidebar() : openSidebar());
-  closeTab.addEventListener('click', () => isOpen() ? closeSidebar() : openSidebar());
+  toggle.addEventListener('click', () => sidebarIsOpen ? closeSidebar() : openSidebar());
+  closeTab.addEventListener('click', () => sidebarIsOpen ? closeSidebar() : openSidebar());
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && isOpen()) closeSidebar();
+    if (e.key === 'Escape' && sidebarIsOpen) closeSidebar();
   });
 
-  // Compute sidebar right offset from Gmail's main content area.
-  // [role="main"] resizes when the Gmail side panel opens/closes, so
-  // ResizeObserver gives immediate, lag-free updates with no polling.
+  // ── Sidebar offset (tracks Gmail side panel) ──────────────────────────────
+  // [role="main"] resizes when Gmail's side panel opens/closes — ResizeObserver
+  // fires immediately with no polling lag.
   const updateSidebarOffset = () => {
     const main = document.querySelector('[role="main"]');
     if (!main) return;
     const { right } = main.getBoundingClientRect();
-    sidebar.style.right = Math.max(0, window.innerWidth - right) + 'px';
+    currentRightOffset = Math.max(0, window.innerWidth - right);
+    if (sidebarIsOpen) sidebar.style.right = currentRightOffset + 'px';
+    updateCloseTabRight();
   };
 
   const main = document.querySelector('[role="main"]');
@@ -161,18 +186,17 @@ export function initSidebar() {
     const ro = new ResizeObserver(updateSidebarOffset);
     ro.observe(main);
   }
-
   window.addEventListener('resize', updateSidebarOffset);
   updateSidebarOffset();
 
+  // closeTab is appended to body as a sibling of sidebar, NOT as a child.
   document.body.appendChild(sidebar);
+  document.body.appendChild(closeTab);
   document.body.appendChild(toggle);
 
   findVisibleToolbarAnchor().then((anchor) => {
     const applyPosition = () => {
       const r = anchor.getBoundingClientRect();
-      // Place toggle immediately left of the Support icon with a 12px gap.
-      // Use the anchor's aria-label to confirm we have the right element.
       toggle.style.top  = Math.round(r.top + (r.height - 40) / 2) + 'px';
       toggle.style.left = (r.left - 40 - 52) + 'px';
     };
