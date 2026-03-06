@@ -1,12 +1,12 @@
 {
   "name": "gmail-intel",
-  "version": "2.7.3",
+  "version": "2.8.0",
   "description": "Gmail Tracking Extension",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "zip": "cd dist && zip -r ../zip/gmail-intel.zip . && cd .. && open -R zip/gmail-intel.zip",
+    "zip": "npm run build && cd dist && zip -r ../zip/gmail-intel.zip . && cd .. && open -R zip/gmail-intel.zip",
     "serve": "vite preview"
   },
   "dependencies": {

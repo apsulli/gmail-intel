@@ -47,7 +47,7 @@ export function initSidebar() {
     boxShadow: '-2px 0 8px rgba(0,0,0,0.15)',
     zIndex: '2147483647',
     transform: 'translateX(100%)',
-    transition: 'transform 0.3s ease',
+    transition: 'transform 0.3s ease, right 0.3s ease',
     fontFamily: "'Google Sans', Roboto, Arial, sans-serif",
   });
 
@@ -146,20 +146,24 @@ export function initSidebar() {
     if (e.key === 'Escape' && isOpen()) closeSidebar();
   });
 
+  // Compute sidebar right offset from Gmail's main content area.
+  // [role="main"] resizes when the Gmail side panel opens/closes, so
+  // ResizeObserver gives immediate, lag-free updates with no polling.
   const updateSidebarOffset = () => {
-    const sidePanel = document.querySelector('[aria-label="Side panel"]');
-    let offset = 0;
-    if (sidePanel) {
-      const r = sidePanel.getBoundingClientRect();
-      // If the side panel is expanded (width typically > 100px), sit flush against its left side.
-      // Otherwise list flush to the right of the window.
-      if (r.width > 100 && r.left > 0) {
-        offset = window.innerWidth - r.left;
-      }
-    }
-    sidebar.style.right = offset + 'px';
+    const main = document.querySelector('[role="main"]');
+    if (!main) return;
+    const { right } = main.getBoundingClientRect();
+    sidebar.style.right = Math.max(0, window.innerWidth - right) + 'px';
   };
-  setInterval(updateSidebarOffset, 250);
+
+  const main = document.querySelector('[role="main"]');
+  if (main) {
+    const ro = new ResizeObserver(updateSidebarOffset);
+    ro.observe(main);
+  }
+
+  window.addEventListener('resize', updateSidebarOffset);
+  updateSidebarOffset();
 
   document.body.appendChild(sidebar);
   document.body.appendChild(toggle);

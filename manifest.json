@@ -1,11 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Gmail Intel Mail Tracker Extension",
-  "version": "2.7.3",
+  "version": "2.8.0",
   "description": "Secure Gmail Tracking Extension",
   "permissions": [
     "identity",
-    "scripting",
     "activeTab",
     "storage"
   ],
