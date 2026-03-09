@@ -3,7 +3,7 @@ import {
   initializeFirestore,
   doc, setDoc, serverTimestamp,
   collection, query, orderBy, limit,
-  onSnapshot, getDoc, getDocs
+  getDoc, getDocs
 } from "firebase/firestore";
 import { firebaseConfig } from "../firebase-config.js";
 
@@ -21,38 +21,42 @@ export const db = initializeFirestore(app, {
 });
 
 export function subscribeToEmails(userId, callback, onError, limitCount = 20) {
-  const q = query(
-    collection(db, "users", userId, "emails"),
-    orderBy("sentAt", "desc"),
-    limit(limitCount)
-  );
-  return onSnapshot(q,
-    (snapshot) => {
-      const emails = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      callback(emails);
-    },
-    (error) => {
+  async function fetchOnce() {
+    try {
+      const q = query(
+        collection(db, "users", userId, "emails"),
+        orderBy("sentAt", "desc"),
+        limit(limitCount)
+      );
+      const snapshot = await getDocs(q);
+      callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
       console.error("Gmail Intel: subscribeToEmails error", error);
       onError?.(error);
     }
-  );
+  }
+  fetchOnce();
+  const id = setInterval(fetchOnce, 30_000);
+  return () => clearInterval(id);
 }
 
 export function subscribeToEvents(userId, emailId, callback, onError) {
-  const q = query(
-    collection(db, "users", userId, "emails", emailId, "events"),
-    orderBy("timestamp", "desc")
-  );
-  return onSnapshot(q,
-    (snapshot) => {
-      const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      callback(events);
-    },
-    (error) => {
+  async function fetchOnce() {
+    try {
+      const q = query(
+        collection(db, "users", userId, "emails", emailId, "events"),
+        orderBy("timestamp", "desc")
+      );
+      const snapshot = await getDocs(q);
+      callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (error) {
       console.error("Gmail Intel: subscribeToEvents error", emailId, error);
       onError?.(error);
     }
-  );
+  }
+  fetchOnce();
+  const id = setInterval(fetchOnce, 30_000);
+  return () => clearInterval(id);
 }
 
 export async function getEmailWithEvents(userId, emailId) {
