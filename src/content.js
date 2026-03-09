@@ -1,6 +1,6 @@
 import { logEmailSent } from './api/db.js';
 import { sendTrackedEmail } from './api/gmail.js';
-import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth/web-extension';
 import { initSidebar } from './sidebar.js';
 import { mountDashboard } from './dashboard/index.jsx';
 
