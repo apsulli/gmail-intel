@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  apiKey: "REDACTED",
-  authDomain: "gm-intel.firebaseapp.com",
-  projectId: "gm-intel",
-  storageBucket: "gm-intel.firebasestorage.app",
-  messagingSenderId: "649396916340",
-  appId: "1:649396916340:web:ac7acb69c71bccf0844121"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
