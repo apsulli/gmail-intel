@@ -46,15 +46,18 @@ function formatTs(date) {
 function buildRecipientStats(recipients, events) {
   const stats = {};
   for (const r of recipients) {
-    stats[r.id] = { opens: 0, clicks: 0, lastOpen: null, lastClick: null, urlClicks: {} };
+    stats[r.id] = { deliveredAt: null, opens: 0, lastOpen: null, clicks: 0, lastClick: null, urlClicks: {} };
   }
+
+  // Collect open timestamps per recipient so we can split delivery from real opens
+  const openTimesByRecipient = {};
   for (const e of events) {
     const s = stats[e.recipientId];
     if (!s) continue;
     const ts = e.timestamp?.toDate?.() ?? null;
     if (e.type === 'open') {
-      s.opens++;
-      if (!s.lastOpen || ts > s.lastOpen) s.lastOpen = ts;
+      if (!openTimesByRecipient[e.recipientId]) openTimesByRecipient[e.recipientId] = [];
+      openTimesByRecipient[e.recipientId].push(ts);
     } else if (e.type === 'click') {
       s.clicks++;
       if (!s.lastClick || ts > s.lastClick) s.lastClick = ts;
@@ -65,6 +68,18 @@ function buildRecipientStats(recipients, events) {
       if (ts && (!s.urlClicks[url].last || ts > s.urlClicks[url].last)) s.urlClicks[url].last = ts;
     }
   }
+
+  // First open per recipient = Google Image Proxy delivery confirmation.
+  // Subsequent opens = genuine recipient re-opens.
+  for (const [recipientId, times] of Object.entries(openTimesByRecipient)) {
+    const s = stats[recipientId];
+    if (!s) continue;
+    const sorted = times.filter(Boolean).sort((a, b) => a - b);
+    s.deliveredAt = sorted[0] ?? times[0] ?? null; // earliest = delivery
+    s.opens = Math.max(0, times.length - 1);        // real opens exclude delivery
+    s.lastOpen = sorted.length > 1 ? sorted[sorted.length - 1] : null;
+  }
+
   return stats;
 }
 
@@ -79,13 +94,18 @@ function EmailRow({ email, userId, onSelect, selected, isSeen, onUnreadChange })
     return unsub;
   }, [userId, email.id]);
 
-  const opens = events.filter(e => e.type === 'open').length;
+  const openEvents = events.filter(e => e.type === 'open');
   const clicks = events.filter(e => e.type === 'click').length;
+  // First open per recipient = delivery confirmation (Google Image Proxy).
+  // Real opens = total opens minus one-per-recipient delivery event.
+  const delivered = openEvents.length > 0;
+  const deliveredRecipientCount = new Set(openEvents.map(e => e.recipientId)).size;
+  const realOpens = Math.max(0, openEvents.length - deliveredRecipientCount);
 
   useEffect(() => {
-    const hasActivity = opens > 0 || clicks > 0;
+    const hasActivity = delivered || clicks > 0;
     onUnreadChange?.(email.id, hasActivity && !isSeen);
-  }, [opens, clicks, isSeen]);
+  }, [delivered, clicks, isSeen]);
 
   const sentAt = email.sentAt?.toDate?.();
   const dateStr = sentAt
@@ -103,15 +123,20 @@ function EmailRow({ email, userId, onSelect, selected, isSeen, onUnreadChange })
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', fontWeight: (opens > 0 || clicks > 0) && !isSeen ? 700 : 500, color: 'var(--text-main, #FFFFFF)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '13px', fontWeight: (delivered || clicks > 0) && !isSeen ? 700 : 500, color: 'var(--text-main, #FFFFFF)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {email.subject || '(no subject)'}
         </span>
         <span style={{ fontSize: '11px', color: 'var(--text-muted, #A0A0A0)', marginLeft: '8px', flexShrink: 0 }}>{dateStr}</span>
       </div>
       <div style={{ marginTop: '4px', display: 'flex', gap: '12px' }}>
-        <span style={{ fontSize: '11px', color: opens > 0 ? 'var(--accent-secondary, #00FFFF)' : 'var(--text-muted, #A0A0A0)' }}>
-          👁 {opens} {opens === 1 ? 'open' : 'opens'}
+        <span style={{ fontSize: '11px', color: delivered ? 'var(--accent-secondary, #00FFFF)' : 'var(--text-muted, #A0A0A0)' }}>
+          {delivered ? '📬 Delivered' : '📭 Not delivered'}
         </span>
+        {realOpens > 0 && (
+          <span style={{ fontSize: '11px', color: 'var(--accent-secondary, #00FFFF)' }}>
+            👁 {realOpens} {realOpens === 1 ? 'open' : 'opens'}
+          </span>
+        )}
         <span style={{ fontSize: '11px', color: clicks > 0 ? 'var(--accent-secondary, #00FFFF)' : 'var(--text-muted, #A0A0A0)' }}>
           🔗 {clicks} {clicks === 1 ? 'click' : 'clicks'}
         </span>
@@ -140,7 +165,7 @@ function EmailRow({ email, userId, onSelect, selected, isSeen, onUnreadChange })
                     {r.email}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
-                    <Stat label="Opens" value={s.opens || null} />
+                    <Stat label="Delivered" value={formatTs(s.deliveredAt)} />
                     <div
                       onClick={e => { e.stopPropagation(); setExpandedRecipient(expandedRecipient === r.id ? null : r.id); }}
                       style={{ cursor: s.clicks > 0 ? 'pointer' : 'default' }}
@@ -150,7 +175,7 @@ function EmailRow({ email, userId, onSelect, selected, isSeen, onUnreadChange })
                         {s.clicks > 0 ? `${s.clicks} ▾` : '—'}
                       </div>
                     </div>
-                    <Stat label="Last open" value={formatTs(s.lastOpen)} />
+                    <Stat label="Re-opens" value={s.opens || null} />
                     <Stat label="Last click" value={formatTs(s.lastClick)} />
                   </div>
                   {expandedRecipient === r.id && s.clicks > 0 && (

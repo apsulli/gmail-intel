@@ -218,10 +218,17 @@ async function handleTrackedSend(composeWindow, sendButton) {
     // page reload. Uses starts-with ^= selector to handle localized tooltips.
     const clickGmailRefresh = () => {
       const refreshBtn = document.querySelector(
-        'div[data-tooltip^="Refresh"], button[aria-label^="Refresh"]'
+        'div[data-tooltip^="Refresh"], div[aria-label^="Refresh"], button[aria-label^="Refresh"]'
       );
-      if (refreshBtn) refreshBtn.click();
-      else console.warn('Gmail Intel: Refresh button not found in DOM');
+      if (refreshBtn) {
+        // Gmail toolbar buttons require a full mouse-event sequence; a bare
+        // .click() is sometimes ignored by Gmail's internal event handlers.
+        ['mousedown', 'mouseup', 'click'].forEach(type =>
+          refreshBtn.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }))
+        );
+      } else {
+        console.warn('Gmail Intel: Refresh button not found in DOM');
+      }
     };
 
     if (draftId) {

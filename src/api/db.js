@@ -1,24 +1,18 @@
 import { initializeApp } from "firebase/app";
 import {
-  initializeFirestore,
+  getFirestore,
   doc, setDoc, serverTimestamp,
   collection, query, orderBy, limit,
   getDoc, getDocs
-} from "firebase/firestore";
+} from "firebase/firestore/lite";
 import { firebaseConfig } from "../firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
-// Chrome extension content scripts run in a sandboxed context where Firestore's
-// default WebChannel transport fails. Force long-polling to avoid the
-// "WebChannelConnection RPC Listen stream transport errored" noise.
-// Chrome extension content scripts cannot use WebChannel or fetch-based
-// streams — both are blocked by the extension sandbox. Force XHR long
-// polling only: experimentalForceLongPolling disables WebChannel,
-// useFetchStreams:false disables the fetch transport added in Firebase 10.x.
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  useFetchStreams: false,
-});
+// Use the Firestore Lite SDK: it communicates via plain HTTP fetch with no
+// WebChannel or streaming transport at all. This permanently eliminates the
+// "WebChannelConnection RPC Listen stream transport errored" warnings that
+// appear in Chrome extension sandbox contexts when using the full SDK.
+export const db = getFirestore(app);
 
 export function subscribeToEmails(userId, callback, onError, limitCount = 20) {
   async function fetchOnce() {
@@ -77,9 +71,11 @@ export async function logEmailSent(emailData) {
       ...rest,
       sentAt: serverTimestamp(),
     });
-    // Write lookup doc so Cloud Functions can resolve userId from emailId
+    // Write lookup doc so Cloud Functions can resolve userId from emailId.
+    // sentAt (client Unix ms) lets trackPixel suppress the Google Image Proxy
+    // pre-fetch that fires within seconds of the email landing in Sent.
     try {
-      await setDoc(doc(db, "emailLookup", emailId), { userId });
+      await setDoc(doc(db, "emailLookup", emailId), { userId, sentAt: Date.now() });
     } catch (e) {
       console.error("Gmail Intel: emailLookup write failed", e);
     }

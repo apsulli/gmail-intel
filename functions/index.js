@@ -35,9 +35,16 @@ exports.trackPixel = functions.https.onRequest(async (req, res) => {
       if (!lookupSnap.exists) {
         return respondWithGif(res);
       }
-      const userId = lookupSnap.data().userId;
-      // 60-second dedup bucket: Google Image Proxy pre-fetches the pixel on
-      // email arrival AND again when the user opens — both within seconds.
+      const { userId, sentAt } = lookupSnap.data();
+      // Suppress opens within 30 seconds of send. Google Image Proxy
+      // pre-fetches the pixel almost immediately when the email lands in the
+      // sender's Sent folder, causing a false "open" event. Any request
+      // within 30 s of sentAt is treated as a pre-fetch, not a real open.
+      if (sentAt && (Date.now() - sentAt) < 30_000) {
+        return respondWithGif(res);
+      }
+      // 60-second dedup bucket: catches duplicate proxy fetches that arrive
+      // after the 30-second grace period (e.g. slow image proxy retries).
       const eventId = dedupeId("open", recipientId, 60_000);
       await db
         .collection("users").doc(userId)
