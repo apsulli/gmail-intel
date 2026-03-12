@@ -2,48 +2,69 @@
 
 ## Current Position
 
-- **Phase**: Phase 11 (complete)
-- **Task**: All tasks complete
+- **Phase**: Phase 11 (complete) + threading/tracking bugfixes
+- **Task**: Awaiting user validation of threading + tracking fixes
 - **Status**: Paused at 2026-03-12
 
 ## Last Session Summary
 
-- Fixed inline reply threading (threadId from URL hash fallback).
-- Fixed 400 "Invalid thread_id value": added GET_THREAD handler + In-Reply-To/References resolution from thread Message-IDs.
-- Fixed 400 when URL hash ID isn't a valid API thread ID: added SEARCH_THREADS handler (subject search) as second-stage fallback; clears threadId gracefully if both fail.
-- Executed Phase 11: persist `fromEmail`/`fromName` on email docs; two-level sender→week grouping in dashboard (cyan sender headers / pink week headers).
-- Version: 2.10.1
+- Added multi-account guard (`IS_PRIMARY_ACCOUNT`): extension silently inactive on `u/1+` tabs.
+- Fixed subject extraction for inline replies: `h2.hP` → `document.title` fallback when `input[name="subjectbox"]` absent.
+- Replaced URL-based thread resolution with 3-stage chain: **GET_MESSAGE** (URL hash as message ID, primary path) → GET_THREAD (legacy hex format) → subject search (last resort).
+- Added `GET_MESSAGE` handler to `background.js` — resolves real API threadId + reply headers in one call.
+- Fixed `refreshAfterSend`: navigate to folder root only after inline reply — do NOT navigate back to thread (caused Gmail to re-open draft compose from internal state).
+- Reduced `trackPixel` suppression window: 30s → 15s (user was opening emails before window expired).
+- Version: 2.11.2 (extension) + functions updated.
 
 ## In-Progress Work
 
-None. All changes committed.
+None. All changes committed. Functions change deployed by user (`cd functions && npm run deploy`).
 
 ## Blockers
 
-None currently known.
+None known. Awaiting user validation of:
+1. Inline reply threading (thread maintained across multiple replies)
+2. Refresh after send (lands on folder root, not draft view)
+3. Open tracking on threaded replies (15s window should fix false negatives)
 
 ## Context Dump
 
 ### Threading Resolution Chain (content.js handleTrackedSend)
 
-Three-stage threadId/header resolution for inline replies:
+Four-stage threadId/header resolution for inline replies:
 
-1. **Draft API** (`GET_DRAFT`): if `draftId` found from DOM or `getLatestDraftId()`, fetch draft METADATA → threadId + In-Reply-To + References. Best path — Gmail's own headers.
-2. **URL hash fallback** (`getThreadIdFromUrl()`): parse `window.location.hash` last segment. Try `GET_THREAD` with it → extract Message-IDs for In-Reply-To/References. Works when URL ID matches API format.
-3. **Subject search fallback** (`SEARCH_THREADS`): if GET_THREAD returns no messages, search `subject:"<subject>"` to find real API thread ID, then GET_THREAD again. If still fails, set threadId = null (send as new thread, no 400 error).
+1. **Draft API** (`GET_DRAFT`): if `draftId` found from DOM or `getLatestDraftId()`, fetch draft METADATA → threadId + In-Reply-To + References. Best path.
+2. **GET_MESSAGE** (new primary URL fallback): treat URL hash ID as a message ID (modern Gmail URLs use message IDs in hash). Returns real API threadId + all reply headers in one call.
+3. **GET_THREAD**: treat URL hash ID as a legacy hex thread ID. Collect Message-IDs from all thread messages.
+4. **Subject search** (`SEARCH_THREADS`): last resort. Uses subject from `h2.hP` or `document.title`.
 
-### Dashboard Grouping
+### Subject Extraction for Inline Replies
 
-Two-level: sender (outer, cyan, zIndex 2) → week (inner, pink, zIndex 1, top: 33px).
-`fromEmail`/`fromName` stored on every new email doc. Legacy docs fall back to "Unknown Sender".
+`input[name="subjectbox"]` is hidden/absent in inline compose. Fallback chain:
+1. `input[name="subjectbox"]` (new compose popups)
+2. `h2.hP` (Gmail thread heading, always visible in thread view)
+3. `document.title` parse ("Subject - user@gmail.com - Gmail")
 
-### Outstanding: Backfill Legacy Docs
+### Refresh After Send
 
-Existing Firestore docs pre-Phase 11 have no `fromEmail`/`fromName`. User needs to manually add these fields in Firebase Console (or run a one-shot Admin SDK script). No code work needed.
+Navigate to folder root (`#inbox`) only — no back-navigation to thread. Navigating back caused Gmail to re-open draft compose from internal JS state. User lands on inbox, clicks thread to see reply.
+
+### Pixel Suppression Window
+
+`functions/index.js`: 15s window (was 30s). Google Image Proxy pre-fetch completes within a few seconds; 15s is sufficient to suppress false positives while allowing real opens.
+
+### Multi-Account Guard
+
+`src/content.js`: `IS_PRIMARY_ACCOUNT` flag gates all extension activity. On `u/1+`: no sidebar, no tracking toggle, no observer, no Firebase auth — completely silent.
+
+### Outstanding
+
+- Backfill legacy Firestore docs with `fromEmail`/`fromName` (pre-Phase 11 docs show "Unknown Sender").
+- End-to-end validation of all threading + tracking fixes still pending.
+- Chrome Web Store submission prep (next major milestone).
 
 ## Next Steps
 
-1. Verify end-to-end: inline reply threads correctly in Gmail UI.
-2. Backfill `fromEmail`/`fromName` on legacy Firestore docs if desired.
-3. Consider Chrome Web Store submission prep (next major milestone).
-4. Full multi-account auth (Phase 12) when ready — chrome.identity per-account tokens + multiple Firebase sessions.
+1. Validate inline reply threading end-to-end (multiple replies in same thread).
+2. Validate open tracking on threaded replies after deploying functions.
+3. If all green: Chrome Web Store submission prep or Phase 12 (full multi-account auth).

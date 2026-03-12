@@ -1,5 +1,43 @@
 # JOURNAL.md
 
+## Session: 2026-03-12 (Threading + Tracking Fixes)
+
+### Objective
+
+Fix inline reply threading, refresh-after-send behavior, open tracking on threaded replies, and add multi-account safety guard.
+
+### Accomplished
+
+- **Multi-account guard**: `IS_PRIMARY_ACCOUNT` — extension silently inactive on `u/1+` (no throw, no errors).
+- **Subject extraction**: `h2.hP` → `document.title` fallback for inline reply compose where subject input is hidden.
+- **GET_MESSAGE handler**: added to `background.js`; treats URL hash ID as message ID (modern Gmail format) — returns real API threadId + reply headers in one call.
+- **3-stage URL fallback**: GET_MESSAGE → GET_THREAD → subject search (replaces broken GET_THREAD → subject search chain).
+- **Refresh fix**: navigate to folder root only after inline reply send — prevents Gmail re-opening draft compose from internal state.
+- **Pixel suppression**: reduced 30s → 15s in `functions/index.js`.
+- Version: 2.11.2.
+
+### Verification
+
+- [x] Build passes
+- [x] All changes committed
+- [x] Tracking pixel confirmed present in sent email source (Show Original)
+- [ ] End-to-end inline reply threading validated
+- [ ] Open tracking on threaded replies validated (requires functions deploy + 15s wait)
+- [ ] Multiple sequential replies stay in thread
+
+### Paused Because
+
+User requested pause to validate fixes independently.
+
+### Handoff Notes
+
+- Functions change (`15s suppression`) must be deployed: `cd functions && npm run deploy`
+- Threading should now work via GET_MESSAGE (primary path for modern Gmail URLs)
+- Refresh lands on folder root — user clicks thread to see reply (intentional, prevents draft-reopen)
+- If threading still breaks on second reply, add console logging to trace which stage resolves threadId
+
+---
+
 ## Session: 2026-03-12 (Threading + Phase 11)
 
 ### Objective
