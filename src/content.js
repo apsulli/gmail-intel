@@ -217,9 +217,10 @@ async function handleTrackedSend(composeWindow, sendButton) {
     // the draft badge and Drafts folder view sync without requiring a full
     // page reload. Uses starts-with ^= selector to handle localized tooltips.
     const clickGmailRefresh = () => {
-      const refreshBtn = document.querySelector(
+      const refreshBtns = document.querySelectorAll(
         'div[data-tooltip^="Refresh"], div[aria-label^="Refresh"], button[aria-label^="Refresh"]'
       );
+      const refreshBtn = Array.from(refreshBtns).find(btn => btn.offsetWidth > 0 && btn.offsetHeight > 0);
       if (refreshBtn) {
         // Gmail toolbar buttons require a full mouse-event sequence; a bare
         // .click() is sometimes ignored by Gmail's internal event handlers.
