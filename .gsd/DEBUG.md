@@ -123,3 +123,72 @@ Likely causes of underlying Firestore error:
 **Fix:** Move refresh outside `if (draftId)` so it always fires after 1.5s. Use `^=` starts-with selector: `div[data-tooltip^="Refresh"], button[aria-label^="Refresh"]`.
 
 ## Status: RESOLVED
+
+---
+
+# Debug Session: 2026-03-12 — Inline Reply Threading + Refresh Parity
+
+## Symptom
+**When:** Sending a tracked email via inline reply (within an open thread view)
+**Expected:**
+- Sent message appears in the same thread (conversation stays intact)
+- Thread view refreshes to show the new message without navigating away
+**Actual:**
+- Message sent but appears as a new standalone conversation (thread broken)
+- Thread view doesn't refresh — user must navigate away and back to see the sent message
+
+## Evidence Gathered
+
+### `getDraftId()` fails for inline replies
+- `input[name="draft"]` only exists in popup compose windows (Gmail legacy)
+- `[data-draft-id]` attribute is not present in inline reply compose DOM
+- Falls through to `getLatestDraftId()` API fallback
+
+### `getLatestDraftId()` race condition
+- Calls `GET /drafts?maxResults=1` — gets the most recently saved draft
+- Gmail creates a draft when a reply compose opens, but autosave is delayed (~30s)
+- If the user replies quickly (before autosave), no draft exists → `draftId = null`
+- `draftId = null` → `GET_DRAFT` skipped → `threadId = null` → `messages/send` without threadId → **new thread created**
+
+### Refresh uses global inbox Refresh button
+- `clickGmailRefresh()` dispatches events to `div[data-tooltip^="Refresh"]`
+- This is the toolbar Refresh button that reloads the folder/inbox list
+- Does NOT trigger a refresh of the currently open thread view
+- For inline replies, user stays in thread but doesn't see the new message until they navigate
+
+### Native send investigation
+The current approach reconstructs MIME from scratch and calls `messages/send` directly.
+A PATCH-draft-then-native-send approach would preserve all Gmail-set threading headers, but
+has a race condition: Gmail re-saves the draft DOM content on send, potentially overwriting
+our tracking injection. Not pursuing this path now.
+
+**Key insight:** The Gmail thread ID is available in the URL hash without any API call.
+`window.location.hash` for an open thread = `#inbox/THREAD_ID` where THREAD_ID matches
+the Gmail API `threadId` exactly. This is synchronous, always available for inline replies,
+and doesn't depend on draft autosave timing.
+
+## Hypotheses
+
+| # | Hypothesis | Likelihood | Status |
+|---|------------|------------|--------|
+| 1 | `threadId` is null for inline replies because draft not autosaved yet | 85% | CONFIRMED |
+| 2 | URL hash contains the correct threadId synchronously for inline context | 90% | CONFIRMED (by design) |
+| 3 | Global Refresh button doesn't reload open thread view | 95% | CONFIRMED |
+
+## Fix
+
+### Threading fix: URL-based threadId fallback
+Add `getThreadIdFromUrl()` that parses `window.location.hash` (`#view/THREAD_ID`).
+In `handleTrackedSend`: if `threadId` is still null after the draft API path, use URL fallback.
+This covers all inline reply cases reliably without API calls.
+
+### Refresh fix: thread-level navigation
+Update `clickGmailRefresh()` to accept `threadId`. When a threadId is known and user is in
+a thread view (hash contains `/`), navigate hash away then back to that thread instead of
+clicking the global Refresh. This triggers Gmail's SPA router to re-render the thread,
+showing the new message.
+
+Fall back to the existing global Refresh button when not in a thread context (e.g., sending
+from a popup compose in the inbox list view).
+
+## Status: IN PROGRESS

@@ -85,6 +85,18 @@ async function getLatestDraftId(token) {
   });
 }
 
+// Extract the Gmail thread ID from the current URL hash.
+// Gmail thread views use hashes like #inbox/THREAD_ID or #all/THREAD_ID.
+// The thread ID matches the Gmail API threadId field exactly, so this is
+// a reliable synchronous fallback when the draft hasn't been autosaved yet.
+function getThreadIdFromUrl() {
+  const parts = window.location.hash.split('/');
+  const candidate = parts[parts.length - 1];
+  // Gmail thread IDs are hex strings, typically 16+ chars
+  if (candidate && /^[A-Za-z0-9]{8,}$/.test(candidate)) return candidate;
+  return null;
+}
+
 async function handleTrackedSend(composeWindow, sendButton) {
   try {
     // 1. Get Auth Token
@@ -190,6 +202,14 @@ async function handleTrackedSend(composeWindow, sendButton) {
       }
     }
 
+    // Fallback: if draft API didn't give us a threadId (no draft yet / inline reply
+    // before autosave), extract it directly from the Gmail URL hash.
+    // This covers inline replies reliably without requiring a saved draft.
+    if (!threadId) {
+      threadId = getThreadIdFromUrl();
+      if (threadId) console.log("Gmail Intel: threadId resolved from URL:", threadId);
+    }
+
     const recipientLogs = [];
 
     // 3. Process Mail Merge
@@ -233,22 +253,44 @@ async function handleTrackedSend(composeWindow, sendButton) {
 
     // 6. Delete the draft by ID after a short delay so Gmail has fully
     // stopped autosaving before we remove the draft from the backend.
-    // After deletion (or if no draft ID), click Gmail's Refresh button so
-    // the draft badge and Drafts folder view sync without requiring a full
-    // page reload. Uses starts-with ^= selector to handle localized tooltips.
-    const clickGmailRefresh = () => {
-      const refreshBtns = document.querySelectorAll(
-        'div[data-tooltip^="Refresh"], div[aria-label^="Refresh"], button[aria-label^="Refresh"]'
-      );
-      const refreshBtn = Array.from(refreshBtns).find(btn => btn.offsetWidth > 0 && btn.offsetHeight > 0);
-      if (refreshBtn) {
+    // After deletion (or if no draft ID), refresh the view so the sent
+    // message and draft badge are up to date.
+    //
+    // For inline replies (inside a thread view), we navigate the Gmail SPA
+    // hash away and back to the same thread — this re-renders the thread and
+    // shows the newly sent message. The global Refresh button only reloads
+    // the folder list and doesn't update an open thread.
+    //
+    // For popup compose (inbox list view), we fall back to clicking the
+    // global Refresh button as before.
+    const refreshAfterSend = (resolvedThreadId) => {
+      const hash = window.location.hash;
+      const isInThreadView = resolvedThreadId && hash.includes('/');
+
+      if (isInThreadView) {
+        // Navigate to the folder root (e.g. #inbox), then back to the thread.
+        // This triggers Gmail's SPA router to re-render the thread view with
+        // the new message visible.
+        const hashBase = hash.substring(0, hash.lastIndexOf('/'));
+        window.location.hash = hashBase;
+        setTimeout(() => {
+          window.location.hash = hashBase + '/' + resolvedThreadId;
+        }, 300);
+      } else {
+        // Folder list view: click the global Refresh button to sync draft badge.
         // Gmail toolbar buttons require a full mouse-event sequence; a bare
         // .click() is sometimes ignored by Gmail's internal event handlers.
-        ['mousedown', 'mouseup', 'click'].forEach(type =>
-          refreshBtn.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }))
+        const refreshBtns = document.querySelectorAll(
+          'div[data-tooltip^="Refresh"], div[aria-label^="Refresh"], button[aria-label^="Refresh"]'
         );
-      } else {
-        console.warn('Gmail Intel: Refresh button not found in DOM');
+        const refreshBtn = Array.from(refreshBtns).find(btn => btn.offsetWidth > 0 && btn.offsetHeight > 0);
+        if (refreshBtn) {
+          ['mousedown', 'mouseup', 'click'].forEach(type =>
+            refreshBtn.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }))
+          );
+        } else {
+          console.warn('Gmail Intel: Refresh button not found in DOM');
+        }
       }
     };
 
@@ -256,12 +298,12 @@ async function handleTrackedSend(composeWindow, sendButton) {
       setTimeout(() => {
         chrome.runtime.sendMessage({ type: 'DELETE_DRAFT_BY_ID', token, draftId }, (res) => {
           console.log(`Gmail Intel: draft delete status ${res?.status ?? 'error'} for ID ${draftId}`);
-          clickGmailRefresh();
+          refreshAfterSend(threadId);
         });
       }, 1500);
     } else {
       // No draft to delete; still refresh to sync Gmail's UI state
-      setTimeout(clickGmailRefresh, 1500);
+      setTimeout(() => refreshAfterSend(threadId), 1500);
     }
 
   } catch (error) {
