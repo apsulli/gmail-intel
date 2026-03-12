@@ -4,7 +4,16 @@ import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth
 import { initSidebar } from './sidebar.js';
 import { mountDashboard } from './dashboard/index.jsx';
 
-console.log("Gmail Intel Content Script Loaded.");
+// Guard: only activate on the primary Gmail account (u/0).
+// Secondary accounts use web-cookie auth and chrome.identity.getAuthToken()
+// only returns a token for the Chrome profile's primary account, so injecting
+// on u/1+ would show wrong-account data or silently send from the wrong inbox.
+const _accountMatch = window.location.pathname.match(/^\/mail\/u\/(\d+)\//);
+const IS_PRIMARY_ACCOUNT = !_accountMatch || parseInt(_accountMatch[1], 10) === 0;
+
+if (IS_PRIMARY_ACCOUNT) {
+  console.log("Gmail Intel Content Script Loaded.");
+}
 
 async function initDashboardAuth() {
   try {
@@ -27,12 +36,14 @@ function waitForGmailReady() {
   });
 }
 
-(async () => {
-  await waitForGmailReady();
-  const { container, close } = initSidebar();
-  const user = await initDashboardAuth();
-  mountDashboard(container, user, close);
-})();
+if (IS_PRIMARY_ACCOUNT) {
+  (async () => {
+    await waitForGmailReady();
+    const { container, close } = initSidebar();
+    const user = await initDashboardAuth();
+    mountDashboard(container, user, close);
+  })();
+}
 
 const TRACKING_STATE = new WeakMap();
 
@@ -161,9 +172,22 @@ async function handleTrackedSend(composeWindow, sendButton) {
     }
 
     // Try to find subject
-    const subjectInput = composeWindow.querySelector('input[name="subjectbox"]') || 
-                         document.querySelector('input[name="subjectbox"]'); // Global fallback for subject
-    if (subjectInput) subject = subjectInput.value;
+    const subjectInput = composeWindow.querySelector('input[name="subjectbox"]') ||
+                         document.querySelector('input[name="subjectbox"]');
+    if (subjectInput?.value) {
+      subject = subjectInput.value;
+    } else {
+      // Inline reply: the subject box is hidden. Fall back to the thread heading visible
+      // in the thread view (h2.hP is Gmail's thread subject element), then the page title.
+      const threadHeading = document.querySelector('h2.hP');
+      if (threadHeading?.innerText?.trim()) {
+        subject = threadHeading.innerText.trim();
+      } else if (document.title) {
+        // document.title format: "Subject - user@example.com - Gmail"
+        const titleParts = document.title.split(' - ');
+        if (titleParts.length >= 2) subject = titleParts[0].trim();
+      }
+    }
 
     // Deduplicate recipients
     recipients = [...new Set(recipients)];
@@ -317,7 +341,11 @@ async function handleTrackedSend(composeWindow, sendButton) {
     // global Refresh button as before.
     const refreshAfterSend = (resolvedThreadId) => {
       const hash = window.location.hash;
-      const isInThreadView = resolvedThreadId && hash.includes('/');
+      // If the API thread ID couldn't be resolved, fall back to the URL hash ID for
+      // SPA navigation. Gmail's router accepts both API-format and URL-format IDs.
+      const urlHashId = hash.includes('/') ? hash.split('/').pop() : null;
+      const navId = resolvedThreadId || urlHashId;
+      const isInThreadView = navId && hash.includes('/');
 
       if (isInThreadView) {
         // Navigate to the folder root (e.g. #inbox), then back to the thread.
@@ -326,7 +354,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
         const hashBase = hash.substring(0, hash.lastIndexOf('/'));
         window.location.hash = hashBase;
         setTimeout(() => {
-          window.location.hash = hashBase + '/' + resolvedThreadId;
+          window.location.hash = hashBase + '/' + navId;
         }, 300);
       } else {
         // Folder list view: click the global Refresh button to sync draft badge.
@@ -467,4 +495,6 @@ const observer = new MutationObserver(() => {
   });
 });
 
-observer.observe(document.body, { childList: true, subtree: true });
+if (IS_PRIMARY_ACCOUNT) {
+  observer.observe(document.body, { childList: true, subtree: true });
+}
