@@ -259,3 +259,40 @@ User requested pause. Phase 5 fully planned, ready to execute next session.
 - Run `firebase deploy --only firestore` FIRST to fix dashboard loading
 - Then `/execute 5` to run plans 5.1 → 5.2 → 5.3
 - Draft deletion root cause: Gmail search index latency. Plan 5.1 switches to `drafts.send`
+
+---
+
+## Session: 2026-03-02 (Phase 6 Planning)
+
+### Objective
+
+Resume from Phase 5 completion, add multi-tenant data model migration as Phase 6, discuss and plan it.
+
+### Accomplished
+
+- Added Phase 6 (Full Multi-Tenant Support) and Phase 7 (Dashboard UX) to ROADMAP.md
+- Discussed Phase 6 scope: migration strategy, userId-in-URLs security, Firestore indexes, deployment order
+- Documented decisions in DECISIONS.md
+- Created 4 execution plans in `.gsd/phases/6/`
+
+### Paused Because
+
+User requested pause after planning complete.
+
+---
+
+## Session: 2026-03-02 (Phase 6 Execution + Draft Badge Fix)
+
+### Objective
+
+Execute Phase 6 (multi-tenant data model migration) and fix stale draft badge after tracked send.
+
+### Accomplished
+
+- Phase 6 execution: db.js, functions/index.js, DashboardApp.jsx, firestore rules/indexes
+- Deployed Cloud Functions, Firestore rules, deleted old composite index
+- Draft badge refresh fix: click Refresh after DELETE_DRAFT_BY_ID
+
+### Paused Because
+
+User requested pause after Phase 6 execution and bug fix complete.

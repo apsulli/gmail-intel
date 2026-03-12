@@ -4,33 +4,46 @@
 
 - **Phase**: Phase 11 (complete)
 - **Task**: All tasks complete
-- **Status**: Active (resumed 2026-03-12)
+- **Status**: Paused at 2026-03-12
 
 ## Last Session Summary
 
-- Addressed "inline-reply-refresh" (changed `clickGmailRefresh()` to use offset visibility) and "inline-reply-thread-break" (added threading Headers from drafted data).
-- Verified these fixes are failing to adequately maintain threaded state and refresh UI in Gmail.
-- Added GitHub Actions `.github/workflows/deploy-functions.yml` pipeline with `GCP_SA_KEY` resolution to automate Cloud Function deployments.
+- Fixed inline reply threading (threadId from URL hash fallback).
+- Fixed 400 "Invalid thread_id value": added GET_THREAD handler + In-Reply-To/References resolution from thread Message-IDs.
+- Fixed 400 when URL hash ID isn't a valid API thread ID: added SEARCH_THREADS handler (subject search) as second-stage fallback; clears threadId gracefully if both fail.
+- Executed Phase 11: persist `fromEmail`/`fromName` on email docs; two-level sender→week grouping in dashboard (cyan sender headers / pink week headers).
+- Version: 2.10.1
 
 ## In-Progress Work
 
-- `src/content.js` and `src/api/gmail.js` threading implementation requires further inspection.
-- Cloud Functions deployment pipeline exists but features local dedup codebase.
+None. All changes committed.
 
 ## Blockers
 
-- ~~1. **Inline Refresh Missing**: The UI does not correctly refresh following an inline threaded reply from the popup.~~ FIXED (337e6b4)
-- ~~2. **Context Missing**: Inline threaded replies are visibly breaking the conversation tree.~~ FIXED (337e6b4)
-- 3. **Data Model**: Multi-tenant database schema needs to ensure distinct email tracking histories for separate user accounts.
+None currently known.
 
 ## Context Dump
 
-### Current Hypothesis
-- Gmail's threading algorithms may inspect raw `.eml` differently than the REST API assumes, or the native Gmail frontend does not recognize our raw API insertion for real-time thread rendering. 
-- A multi-tenant split implies that the Firestore structure (`/users/{userId}`) is active but `userId` boundaries might be leaking, or local storage doesn't differentiate account sign-ins properly.
+### Threading Resolution Chain (content.js handleTrackedSend)
+
+Three-stage threadId/header resolution for inline replies:
+
+1. **Draft API** (`GET_DRAFT`): if `draftId` found from DOM or `getLatestDraftId()`, fetch draft METADATA → threadId + In-Reply-To + References. Best path — Gmail's own headers.
+2. **URL hash fallback** (`getThreadIdFromUrl()`): parse `window.location.hash` last segment. Try `GET_THREAD` with it → extract Message-IDs for In-Reply-To/References. Works when URL ID matches API format.
+3. **Subject search fallback** (`SEARCH_THREADS`): if GET_THREAD returns no messages, search `subject:"<subject>"` to find real API thread ID, then GET_THREAD again. If still fails, set threadId = null (send as new thread, no 400 error).
+
+### Dashboard Grouping
+
+Two-level: sender (outer, cyan, zIndex 2) → week (inner, pink, zIndex 1, top: 33px).
+`fromEmail`/`fromName` stored on every new email doc. Legacy docs fall back to "Unknown Sender".
+
+### Outstanding: Backfill Legacy Docs
+
+Existing Firestore docs pre-Phase 11 have no `fromEmail`/`fromName`. User needs to manually add these fields in Firebase Console (or run a one-shot Admin SDK script). No code work needed.
 
 ## Next Steps
 
-1. Diagnose and fix the inline threaded refresh mechanism (possibly relying on postMessage/Gmail UI internals instead of DOM clicks).
-2. Deep dive on correct MIME `References` threading configuration.
-3. Architect the multi-tenant tracking history split.
+1. Verify end-to-end: inline reply threads correctly in Gmail UI.
+2. Backfill `fromEmail`/`fromName` on legacy Firestore docs if desired.
+3. Consider Chrome Web Store submission prep (next major milestone).
+4. Full multi-account auth (Phase 12) when ready — chrome.identity per-account tokens + multiple Firebase sessions.

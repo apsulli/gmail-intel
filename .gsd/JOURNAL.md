@@ -1,6 +1,37 @@
 # JOURNAL.md
 
-## Session: 2026-03-12 13:45 
+## Session: 2026-03-12 (Threading + Phase 11)
+
+### Objective
+Fix inline reply threading end-to-end; execute Phase 11 multi-tenant sender grouping.
+
+### Accomplished
+
+- **Threading fix 1**: `getThreadIdFromUrl()` — URL hash as synchronous threadId fallback for inline replies before draft autosave.
+- **Threading fix 2**: `GET_THREAD` handler in background.js — resolves In-Reply-To/References from thread Message-IDs (required by Gmail API when threadId is set).
+- **Threading fix 3**: `SEARCH_THREADS` handler + subject-search fallback — handles case where URL hash ID isn't a valid REST API thread ID. Gracefully clears threadId rather than 400ing.
+- **Phase 11**: `fromEmail`/`fromName` persisted on email docs; dashboard two-level grouping (sender → week) with cyan/pink sticky headers.
+- **Refresh fix**: `refreshAfterSend()` navigates SPA hash away/back to thread for inline replies instead of clicking global Refresh.
+- Version: 2.9.7 → 2.10.1.
+
+### Verification
+
+- [x] Build passes at 2.10.1
+- [x] All changes committed
+- [ ] End-to-end inline reply threading verified in live Gmail
+- [ ] Legacy Firestore docs backfilled with fromEmail/fromName
+
+### Paused Because
+
+User requested pause.
+
+### Handoff Notes
+
+Threading chain is complete: draft API → URL hash → subject search → graceful no-thread. Phase 11 shipped. No open blockers. Next: Chrome Web Store prep or Phase 12 (full multi-account auth).
+
+---
+
+## Session: 2026-03-12 13:45
 
 ### Objective
 
@@ -106,87 +137,4 @@ Natural break point — user called it a day.
 
 ---
 
-## Session: 2026-03-02 (Phase 6 Execution + Draft Badge Fix)
-
-### Objective
-
-Execute Phase 6 (multi-tenant data model migration) and fix stale draft badge after tracked send.
-
-### Accomplished
-
-**Phase 6 execution (2 commits):**
-- 6.1: db.js → `users/{userId}/emails/{emailId}` paths + `emailLookup/{emailId}` write
-- 6.2: Cloud Functions → emailLookup-based userId resolution for trackPixel + trackClick
-- 6.3: DashboardApp.jsx → userId prop threaded into EmailRow + subscribeToEvents
-- 6.4: firestore.rules + firestore.indexes.json updated
-- Deployed Cloud Functions (both functions updated successfully)
-- Deployed Firestore rules + deleted old composite index with `--force`
-
-**Bug fix:**
-- After tracked send, Gmail's draft badge was stale until user navigated
-- Root cause: draft deleted via API but Gmail's frontend state machine unaware
-- Fix: click `div[data-tooltip="Refresh"]` after DELETE_DRAFT_BY_ID callback
-
-### Verification
-
-- [x] `npm run build` passes after Phase 6 changes
-- [x] Cloud Functions deployed: trackPixel + trackClick updated
-- [x] Firestore rules deployed with new path-param auth
-- [x] Old composite index deleted
-- [ ] Human end-to-end verify: send → check Firebase Console paths → dashboard shows data
-- [ ] Old `emails/` collection deleted in Firebase Console
-- [ ] Draft badge refresh fix verified in Chrome
-
-### Paused Because
-
-User requested pause after Phase 6 execution and bug fix complete.
-
-### Handoff Notes
-
-- All code changes committed, all deploys done
-- Human cutover checklist in `.gsd/phases/6/VERIFICATION.md`
-- Next: `/execute 7` after cutover verified
-
----
-
-## Session: 2026-03-02 (Phase 6 Planning)
-
-### Objective
-
-Resume from Phase 5 completion, add multi-tenant data model migration as Phase 6, discuss and plan it.
-
-### Accomplished
-
-- Added Phase 6 (Full Multi-Tenant Support) and Phase 7 (Dashboard UX) to ROADMAP.md
-- Discussed Phase 6 scope: migration strategy, userId-in-URLs security, Firestore indexes, deployment order
-- Documented decisions in DECISIONS.md:
-  - Copy-then-delete migration (Option A) — no script needed, all data is junk test data
-  - `emailLookup/{emailId} → { userId }` lookup collection to avoid exposing Firebase UID in tracking URLs
-  - Drop composite index (auto-index sufficient for user-scoped path queries)
-  - Wipe-and-restart cutover (simplest, pre-production)
-- Created 4 execution plans in `.gsd/phases/6/`:
-  - 6.1: `src/api/db.js` — new Firestore paths + emailLookup write
-  - 6.2: `functions/index.js` — lookup-based userId resolution in Cloud Functions
-  - 6.3: Frontend wiring — `content.js` URL verification + `DashboardApp.jsx` userId threading
-  - 6.4: Config + cutover — rules, indexes, deploy, end-to-end verify
-
-### Verification
-
-- [x] Plans committed: `docs(phase-6): create execution plans for multi-tenant data model migration`
-- [x] DECISIONS.md updated with all Phase 6 decisions
-- [x] ROADMAP.md has Phase 6 + Phase 7 task lists
-
-### Paused Because
-
-User requested pause after planning complete.
-
-### Handoff Notes
-
-- All 4 plans are ready. Execute wave 1 first (6.1, 6.2, 6.3 can be coded together), then wave 2 (6.4 deploys + cutover).
-- Key design: `emailLookup/{emailId}` written by client at send time; Cloud Functions read it to find `users/{userId}/emails/{emailId}` path
-- After 6.4 cutover: manually delete `emails/` collection in Firebase Console (all test data)
-
----
-
-> **📦 Older entries archived** — See `.gsd/journal/` for historical sessions.
-> Run `/archive-journal` to archive when this file grows beyond 5 sessions.
+> **📦 Older entries archived** — See `.gsd/journal/2026-03-archive.md` for Phase 5–6 sessions.
