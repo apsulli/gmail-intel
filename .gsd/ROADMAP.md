@@ -179,7 +179,7 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 ---
 
 ### Phase 11: Multi-Tenant Support
-**Status**: ⬜ Not Started
+**Status**: ✅ Complete
 **Objective**: Ensure each Google account that installs the extension has a completely isolated tracking history — emails sent from account A are never visible to account B, and switching accounts in Chrome reflects the correct user's data throughout the extension.
 **Depends on**: Phase 10
 

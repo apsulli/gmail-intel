@@ -309,49 +309,90 @@ export default function DashboardApp({ user, onClose }) {
         </div>
       )}
       {emails !== null && (() => {
-        // Build ordered week buckets (emails are already sorted sentAt desc)
-        const buckets = [];
-        const seen = {};
+        // Build two-level groups: sender (outer) → week (inner).
+        // Emails arrive sorted sentAt desc, so the first email seen per sender
+        // is the most recent — sender order is naturally most-recent-first.
+        const senderBuckets = [];
+        const senderIndex = {};
         for (const email of emails) {
-          const sentAt = email.sentAt?.toDate?.() ?? new Date();
-          const label = weekLabel(sentAt);
-          if (!seen[label]) {
-            seen[label] = true;
-            buckets.push({ label, emails: [] });
+          const key = email.fromEmail || 'unknown';
+          if (senderIndex[key] === undefined) {
+            senderIndex[key] = senderBuckets.length;
+            senderBuckets.push({ fromEmail: email.fromEmail || null, fromName: email.fromName || null, emails: [] });
           }
-          buckets[buckets.length - 1].emails.push(email);
+          senderBuckets[senderIndex[key]].emails.push(email);
         }
-        return buckets.map(({ label, emails: group }) => (
-          <div key={label}>
-            <div style={{
-              padding: '6px 12px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: 'var(--accent-primary, #FF1493)',
-              background: 'var(--bg-card, #202020)',
-              borderBottom: '1px solid #333',
-              position: 'sticky',
-              top: 0,
-              zIndex: 1,
-              fontFamily: "var(--font-header, 'Fredoka', sans-serif)",
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}>
-              {label}
+
+        return senderBuckets.map(({ fromEmail, fromName, emails: senderEmails }) => {
+          const senderLabel = fromName
+            ? `${fromName} (${fromEmail ?? 'Unknown'})`
+            : (fromEmail ?? 'Unknown Sender');
+
+          // Build week buckets within this sender group
+          const weekBuckets = [];
+          const seenWeeks = {};
+          for (const email of senderEmails) {
+            const sentAt = email.sentAt?.toDate?.() ?? new Date();
+            const label = weekLabel(sentAt);
+            if (!seenWeeks[label]) {
+              seenWeeks[label] = true;
+              weekBuckets.push({ label, emails: [] });
+            }
+            weekBuckets[weekBuckets.length - 1].emails.push(email);
+          }
+
+          return (
+            <div key={fromEmail ?? 'unknown'}>
+              <div style={{
+                padding: '8px 12px',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: 'var(--accent-secondary, #00FFFF)',
+                background: 'var(--bg-sidebar, #121212)',
+                borderBottom: '1px solid #333',
+                borderTop: '2px solid var(--accent-secondary, #00FFFF)',
+                position: 'sticky',
+                top: 0,
+                zIndex: 2,
+                fontFamily: "var(--font-header, 'Fredoka', sans-serif)",
+                letterSpacing: '0.3px',
+              }}>
+                ✉️ {senderLabel}
+              </div>
+              {weekBuckets.map(({ label, emails: group }) => (
+                <div key={label}>
+                  <div style={{
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--accent-primary, #FF1493)',
+                    background: 'var(--bg-card, #202020)',
+                    borderBottom: '1px solid #333',
+                    position: 'sticky',
+                    top: '33px',
+                    zIndex: 1,
+                    fontFamily: "var(--font-header, 'Fredoka', sans-serif)",
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                  }}>
+                    {label}
+                  </div>
+                  {group.map(email => (
+                    <EmailRow
+                      key={email.id}
+                      email={email}
+                      userId={user.uid}
+                      selected={selected?.id === email.id}
+                      onSelect={handleSelect}
+                      isSeen={!!seenMap[email.id]}
+                      onUnreadChange={handleUnreadChange}
+                    />
+                  ))}
+                </div>
+              ))}
             </div>
-            {group.map(email => (
-              <EmailRow
-                key={email.id}
-                email={email}
-                userId={user.uid}
-                selected={selected?.id === email.id}
-                onSelect={handleSelect}
-                isSeen={!!seenMap[email.id]}
-                onUnreadChange={handleUnreadChange}
-              />
-            ))}
-          </div>
-        ));
+          );
+        });
       })()}
       {emails !== null && emails.length === emailLimit && (
         <div style={{ padding: '12px 16px', textAlign: 'center', borderTop: '1px solid #e0e0e0' }}>

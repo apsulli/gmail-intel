@@ -210,6 +210,28 @@ async function handleTrackedSend(composeWindow, sendButton) {
       if (threadId) console.log("Gmail Intel: threadId resolved from URL:", threadId);
     }
 
+    // When using URL-based threadId fallback (no draft), we have no In-Reply-To /
+    // References headers. Gmail API messages/send requires these headers to accept
+    // a threadId — without them it returns "Invalid thread_id value".
+    // Fetch the thread's messages to extract the Message-IDs we need.
+    if (threadId && !inReplyTo) {
+      const threadData = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ type: 'GET_THREAD', token, threadId }, res => resolve(res?.data));
+      });
+      if (threadData && threadData.messages && threadData.messages.length > 0) {
+        const messageIds = threadData.messages
+          .map(msg => msg.payload?.headers?.find(h => h.name.toLowerCase() === 'message-id')?.value)
+          .filter(Boolean);
+        if (messageIds.length > 0) {
+          inReplyTo = messageIds[messageIds.length - 1];
+          references = messageIds.join(' ');
+          console.log("Gmail Intel: inReplyTo/references resolved from thread lookup:", inReplyTo);
+        }
+      } else {
+        console.warn("Gmail Intel: GET_THREAD failed or empty, threading headers unavailable:", threadData);
+      }
+    }
+
     const recipientLogs = [];
 
     // 3. Process Mail Merge
@@ -237,7 +259,9 @@ async function handleTrackedSend(composeWindow, sendButton) {
       emailId: emailId,
       userId: user.uid,
       subject: subject,
-      recipients: recipientLogs
+      recipients: recipientLogs,
+      fromEmail: user.email ?? '',
+      fromName: user.displayName ?? null,
     });
 
     // 5. Remove the compose window directly from the DOM.
