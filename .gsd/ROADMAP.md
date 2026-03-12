@@ -1,6 +1,6 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 11
+> **Current Phase**: Phase 12
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
@@ -175,3 +175,18 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 - [ ] Open Gmail Intel sidebar → it sits flush to the left of Gmail's side panel (no overlap)
 - [ ] Toggle Gmail's side panel open/closed → Gmail Intel sidebar smoothly adjusts position without jumping
 - [ ] Gmail side panel is absent → Gmail Intel sidebar sits flush at the right edge of the viewport
+
+---
+
+### Phase 11: Multi-Tenant Support
+**Status**: ⬜ Not Started
+**Objective**: Ensure each Google account that installs the extension has a completely isolated tracking history — emails sent from account A are never visible to account B, and switching accounts in Chrome reflects the correct user's data throughout the extension.
+**Depends on**: Phase 10
+
+**Tasks**:
+- [ ] TBD (run /plan-phase 11 to create)
+
+**Verification**:
+- [ ] Sign in with two different Google accounts → dashboards show separate, non-overlapping email histories
+- [ ] Send a tracked email from account A → account B dashboard shows no new entries
+- [ ] Switching the active account in Gmail → sidebar data updates to reflect the newly active account
