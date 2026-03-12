@@ -1,5 +1,5 @@
 // src/api/gmail.js
-export async function sendTrackedEmail(token, { to, subject, body, trackingPixelHtml, from }) {
+export async function sendTrackedEmail(token, { to, subject, body, trackingPixelHtml, from, threadId, inReplyTo, references }) {
   const boundary = "gmail_intel_boundary";
 
   // Build From header using display name if available
@@ -12,6 +12,8 @@ export async function sendTrackedEmail(token, { to, subject, body, trackingPixel
     ...(fromHeader ? [`From: ${fromHeader}`] : []),
     `To: ${to}`,
     `Subject: ${subject}`,
+    ...(inReplyTo ? [`In-Reply-To: ${inReplyTo}`] : []),
+    ...(references ? [`References: ${references}`] : []),
     "Content-Type: multipart/alternative; boundary=" + boundary,
     "",
     "--" + boundary,
@@ -35,7 +37,7 @@ export async function sendTrackedEmail(token, { to, subject, body, trackingPixel
   // Content scripts are subject to CORS restrictions in modern Chrome.
   // We must proxy this request to the background service worker!
   return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ type: 'SEND_EMAIL', token, payload: b64Safe }, (response) => {
+    chrome.runtime.sendMessage({ type: 'SEND_EMAIL', token, payload: b64Safe, threadId }, (response) => {
       if (chrome.runtime.lastError) {
         return reject(new Error(chrome.runtime.lastError.message));
       }

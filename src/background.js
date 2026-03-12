@@ -32,6 +32,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Get full draft details (for thread IDs & headers)
+  if (message.type === 'GET_DRAFT') {
+    const { token, draftId } = message;
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}?format=METADATA`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then(r => r.json())
+    .then(data => sendResponse({ data }))
+    .catch(e => sendResponse({ error: e.message }));
+    return true;
+  }
+
+
   // Delete a draft by ID (used after sending tracked email)
   if (message.type === 'DELETE_DRAFT_BY_ID') {
     const { token, draftId } = message;
@@ -59,9 +72,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Handle the Gmail API Send request internally to bypass content script CORS
   if (message.type === 'SEND_EMAIL') {
-    const { token, payload } = message;
+    const { token, payload, threadId } = message;
     
     console.log("🔍 Background: Sending email via Gmail API...");
+
+    const reqBody = { raw: payload };
+    if (threadId) {
+      reqBody.threadId = threadId;
+    }
 
     fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
       method: "POST",
@@ -69,7 +87,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ raw: payload }),
+      body: JSON.stringify(reqBody),
     })
     .then(async (response) => {
       if (!response.ok) {

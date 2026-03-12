@@ -170,6 +170,26 @@ async function handleTrackedSend(composeWindow, sendButton) {
     const draftId = getDraftId(composeWindow) ?? await getLatestDraftId(token);
     console.log("Gmail Intel: draft ID resolved to", draftId);
 
+    let threadId = null;
+    let inReplyTo = null;
+    let references = null;
+
+    if (draftId) {
+      const draftData = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ type: 'GET_DRAFT', token, draftId }, res => resolve(res?.data));
+      });
+      if (draftData && draftData.message) {
+        threadId = draftData.message.threadId;
+        const headers = draftData.message.payload?.headers || [];
+        inReplyTo = headers.find(h => h.name.toLowerCase() === 'in-reply-to')?.value;
+        references = headers.find(h => h.name.toLowerCase() === 'references')?.value;
+        const draftSubject = headers.find(h => h.name.toLowerCase() === 'subject')?.value;
+        if (draftSubject) {
+          subject = draftSubject; // Overrides the DOM extracted subject to match exactly
+        }
+      }
+    }
+
     const recipientLogs = [];
 
     // 3. Process Mail Merge
@@ -188,7 +208,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
       const bodyHtml = tempDiv.innerHTML;
       const trackingPixelHtml = `<img src="${PIXEL_URL}?emailId=${emailId}&recipientId=${recipientId}" width="1" height="1" style="display:none" />`;
 
-      await sendTrackedEmail(token, { to: recipient, subject, body: bodyHtml, trackingPixelHtml, from: user });
+      await sendTrackedEmail(token, { to: recipient, subject, body: bodyHtml, trackingPixelHtml, from: user, threadId, inReplyTo, references });
       recipientLogs.push({ email: recipient, id: recipientId });
     }
 
