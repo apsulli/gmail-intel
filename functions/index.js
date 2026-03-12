@@ -40,7 +40,7 @@ exports.trackPixel = functions.https.onRequest(async (req, res) => {
       // pre-fetches the pixel almost immediately when the email lands in the
       // sender's Sent folder, causing a false "open" event. Any request
       // within 30 s of sentAt is treated as a pre-fetch, not a real open.
-      if (sentAt && (Date.now() - sentAt) < 30_000) {
+      if (sentAt && (Date.now() - sentAt) < 15_000) {
         return respondWithGif(res);
       }
       // 60-second dedup bucket: catches duplicate proxy fetches that arrive
