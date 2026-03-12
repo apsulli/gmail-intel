@@ -2,25 +2,35 @@
 
 ## Current Position
 
-- **Phase**: Phase 9 (complete)
-- **Task**: All tasks complete
-- **Status**: Active (resuming 2026-03-12)
+- **Phase**: Post-Phase 9 + Refactoring
+- **Task**: Resolving inline-reply email threads and multi-tenant logic
+- **Status**: Paused at 2026-03-12 13:45Z
 
 ## Last Session Summary
 
-- Fixed duplicate open/click events: Cloud Functions now use deterministic Firestore doc IDs (time-bucket dedup). Deploy pending (firebase login --reauth needed).
-- Phase 9 executed: seen state + bold unread rows + extension icon badge.
-- Phase 10 planned: durable sidebar positioning (ResizeObserver).
+- Addressed "inline-reply-refresh" (changed `clickGmailRefresh()` to use offset visibility) and "inline-reply-thread-break" (added threading Headers from drafted data).
+- Verified these fixes are failing to adequately maintain threaded state and refresh UI in Gmail.
+- Added GitHub Actions `.github/workflows/deploy-functions.yml` pipeline with `GCP_SA_KEY` resolution to automate Cloud Function deployments.
 
 ## In-Progress Work
 
-- functions/index.js dedup fix is written but NOT yet deployed (firebase auth expired).
+- `src/content.js` and `src/api/gmail.js` threading implementation requires further inspection.
+- Cloud Functions deployment pipeline exists but features local dedup codebase.
 
 ## Blockers
 
-- Firebase credentials expired: `cd functions && firebase login --reauth && npm run deploy`
+- 1. **Inline Refresh Missing**: The UI does not correctly refresh following an inline threaded reply from the popup.
+- 2. **Context Missing**: Inline threaded replies are visibly breaking the conversation tree.
+- 3. **Data Model**: Multi-tenant database schema needs to ensure distinct email tracking histories for separate user accounts. 
+
+## Context Dump
+
+### Current Hypothesis
+- Gmail's threading algorithms may inspect raw `.eml` differently than the REST API assumes, or the native Gmail frontend does not recognize our raw API insertion for real-time thread rendering. 
+- A multi-tenant split implies that the Firestore structure (`/users/{userId}`) is active but `userId` boundaries might be leaking, or local storage doesn't differentiate account sign-ins properly.
 
 ## Next Steps
 
-1. Deploy functions dedup fix (`firebase login --reauth` then `npm run deploy` in /functions)
-2. Chrome Web Store submission (all phases complete)
+1. Diagnose and fix the inline threaded refresh mechanism (possibly relying on postMessage/Gmail UI internals instead of DOM clicks).
+2. Deep dive on correct MIME `References` threading configuration.
+3. Architect the multi-tenant tracking history split.

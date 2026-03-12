@@ -1,5 +1,30 @@
 # JOURNAL.md
 
+## Session: 2026-03-12 13:45 
+
+### Objective
+
+Address refresh and threading isolation for inline replies, setup CI workflows using GitHub Actions. Address a user pause request.
+
+### Accomplished
+
+- Executed `inline-reply-refresh` bug fix: targeted `[data-tooltip="Refresh"]` by checking DOM dimensions.
+- Executed `inline-reply-thread-break` bug fix: leveraged `format=METADATA` Gmail Draft endpoint to extract native `threadId`, `References`, and `In-Reply-To` parameters, wiring them back to the API request and raw MIME packet.
+- Designed `deploy-functions.yml` for automated Google Cloud Functions pipelines leveraging GitHub `.secrets.GCP_SA_KEY`. Setup pipeline permissions. 
+
+### Verification
+
+- [x] Action workflow compiled natively without linter breakage.
+- [ ] Fixes to caching and threading proved insufficient; inline threads still segregate. Popups appear successful.
+
+### Paused Because
+
+User formally requested to stop per `/pause-work`, recognizing significant outstanding architectural blocks (broken threading, broken inline refresh, lack of verified multi-tenant support).
+
+### Handoff Notes
+
+The threading algorithms injected within `src/content.js` > `sendTrackedEmail` remain compromised. We're effectively overriding Gmail's standard HTTP logic in an inline setting while stripping some unknown piece of contextual data. The multi-tenant architecture tracking histories need isolating too.
+
 ## Session: 2026-03-02 (Phase 8 Execution + UX Polish)
 
 ### Objective
@@ -160,53 +185,6 @@ User requested pause after planning complete.
 - All 4 plans are ready. Execute wave 1 first (6.1, 6.2, 6.3 can be coded together), then wave 2 (6.4 deploys + cutover).
 - Key design: `emailLookup/{emailId}` written by client at send time; Cloud Functions read it to find `users/{userId}/emails/{emailId}` path
 - After 6.4 cutover: manually delete `emails/` collection in Firebase Console (all test data)
-
----
-
-## Session: 2026-03-02 (Phase 5 Execution + Bug Sprint)
-
-### Objective
-
-Execute Phase 5 plans, then resolve all post-execution bugs reported by user.
-
-### Accomplished
-
-**Phase 5 execution (one commit):**
-- 5.1: Draft deletion redesigned — DOM extraction + `GET /drafts` fallback + `DELETE_DRAFT_BY_ID`
-- 5.2: Toggle button animates right position (16px ↔ 376px) with sidebar open/close
-- 5.3: Per-recipient analytics grid in expanded email row (opens, clicks, last open, last click)
-
-**Bug fixes (multiple commits):**
-- Added `gmail.compose` OAuth scope to manifest — was blocking `GET /drafts` and `drafts.send`
-- Added `onError` handler to `subscribeToEvents` — silent Firestore failures now surface in UI
-- Fixed Firestore events security rule: `get()` cross-read → `request.auth != null`
-- Deployed Firestore rules + composite index: `firebase deploy --only firestore`
-- Fixed "Oops, something went wrong": moved draft delete to AFTER compose close + 1.5s delay
-- Fixed compose close: replaced discard button click (crashes Gmail internals) with direct DOM removal via `closest('[role="dialog"]')`
-
-**Housekeeping:**
-- Untracked `dist/` and `.firebase/` from git (were tracked before .gitignore)
-- Version bumped: 2.2.0 → 2.3.0 → 2.3.1 → 2.4.0 → 2.4.1
-
-### Verification
-
-- [x] Draft deletion working — 204 response confirmed in console
-- [x] No "Oops, something went wrong" error
-- [x] Compose window fully removed after send (no zombie minimize)
-- [x] Firestore events subscription working (permission-denied resolved)
-- [x] Per-recipient stats grid rendering
-- [x] Toggle push animation working
-- [x] Build passing at 2.4.1
-
-### Paused Because
-
-User requested pause. All Phase 5 bugs resolved and verified.
-
-### Handoff Notes
-
-- All bugs from Phase 5 execution are resolved
-- No blockers
-- Next: plan Phase 6 or proceed to Chrome Web Store submission
 
 ---
 
