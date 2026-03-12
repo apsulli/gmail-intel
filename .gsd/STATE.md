@@ -19,9 +19,9 @@
 
 ## Blockers
 
-- 1. **Inline Refresh Missing**: The UI does not correctly refresh following an inline threaded reply from the popup.
-- 2. **Context Missing**: Inline threaded replies are visibly breaking the conversation tree.
-- 3. **Data Model**: Multi-tenant database schema needs to ensure distinct email tracking histories for separate user accounts. 
+- ~~1. **Inline Refresh Missing**: The UI does not correctly refresh following an inline threaded reply from the popup.~~ FIXED (337e6b4)
+- ~~2. **Context Missing**: Inline threaded replies are visibly breaking the conversation tree.~~ FIXED (337e6b4)
+- 3. **Data Model**: Multi-tenant database schema needs to ensure distinct email tracking histories for separate user accounts.
 
 ## Context Dump
 

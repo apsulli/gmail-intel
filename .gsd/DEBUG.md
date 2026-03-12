@@ -191,4 +191,14 @@ showing the new message.
 Fall back to the existing global Refresh button when not in a thread context (e.g., sending
 from a popup compose in the inbox list view).
 
-## Status: IN PROGRESS
+## Resolution
+
+**Root Cause 1 (threading):** `getDraftId()` always returns null for inline compose windows. `getLatestDraftId()` API fallback races with Gmail's 30s autosave — if no draft exists yet, `threadId` stays null and the message creates a new thread.
+
+**Root Cause 2 (refresh):** Global Refresh button reloads the folder list, not the open thread. The thread view doesn't update to show the sent message.
+
+**Fix:** `getThreadIdFromUrl()` parses `window.location.hash` (`#inbox/THREAD_ID`) — synchronous, no API call, always correct for inline reply context. `refreshAfterSend(threadId)` navigates hash away/back to trigger Gmail's SPA router to re-render the thread when in thread view; falls back to global Refresh for folder-list popup sends.
+
+**Committed:** `337e6b4`
+
+## Status: RESOLVED
