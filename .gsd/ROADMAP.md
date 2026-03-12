@@ -184,9 +184,12 @@ users/{userId}/emails/{emailId}   ← user-scoped subcollection
 **Depends on**: Phase 10
 
 **Tasks**:
-- [ ] TBD (run /plan-phase 11 to create)
+- [ ] 11.1 — Store sender: pass `fromEmail` + `fromName` from Firebase auth user into `logEmailSent`; fields spread into Firestore doc automatically via existing `...rest` pattern
+- [ ] 11.2 — Dashboard grouping: replace single-level week grouping with two-level sender→week grouping; cyan sticky sender headers (zIndex 2) above pink week headers (zIndex 1); sender label shows `Name (email)` when displayName available, falls back to `email` or `"Unknown Sender"` for legacy docs
 
 **Verification**:
-- [ ] Sign in with two different Google accounts → dashboards show separate, non-overlapping email histories
-- [ ] Send a tracked email from account A → account B dashboard shows no new entries
-- [ ] Switching the active account in Gmail → sidebar data updates to reflect the newly active account
+- [ ] Send a tracked email → Firestore doc has `fromEmail` and `fromName` fields
+- [ ] Dashboard shows a cyan sender header (`✉️ Name (email)`) above the existing pink week headers
+- [ ] Legacy docs without `fromEmail` appear under an "Unknown Sender" header, not crashing
+- [ ] With a single account (current typical case): one sender section, week grouping inside — layout is clean
+- [ ] Build passes, no regressions to EmailRow expand/collapse or pagination

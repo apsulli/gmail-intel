@@ -101,3 +101,28 @@
 - **Problem:** `addDoc` was creating auto-generated Firestore doc IDs, but Cloud Functions write events to `emails/{UUID}/events/...` using the tracking UUID. Events were orphaned.
 - **Fix:** Switched `logEmailSent` to use `setDoc(doc(db, "emails", emailId), ...)` so the Firestore doc ID matches the UUID used in tracking pixel/click URLs.
 - **Status:** Implemented and deployed.
+
+---
+
+## Phase 11 Decisions
+
+**Date:** 2026-03-12
+
+### Scope
+
+- **Goal:** Visual multi-tenant support as a stepping stone to full multi-account auth.
+- **Out of scope (deferred):** `chrome.identity` per-account token handling, multiple Firebase auth sessions, `/u/N/` URL-based account switching logic. These are the major v2 architectural work.
+- **In scope:** Store the sender's identity on every email doc; group the dashboard by sender using sticky headers (same pattern as weekly headers).
+
+### Sender Storage
+
+- Add `fromEmail` (string) and `fromName` (string, nullable) fields to every email doc written by `logEmailSent`.
+- Source: `user.email` and `user.displayName` from the Firebase auth `currentUser` already in scope at send time in `content.js`.
+- Existing docs without these fields fall back to the display label `"Unknown Sender"` in the dashboard.
+
+### Dashboard Grouping: Two-Level (Sender → Week)
+
+- **Outer group:** `fromEmail` — one sticky header per unique sender.
+- **Inner group:** `weekLabel(sentAt)` — existing week headers, now nested inside sender sections.
+- **Sort order:** Senders ordered by their most recent email (descending); weeks within each sender also descending (existing behavior preserved).
+- **Header visual:** Sender header uses `var(--accent-secondary, #00FFFF)` (cyan) to distinguish from the existing week headers which use `var(--accent-primary, #FF1493)` (pink). Displays `fromName (fromEmail)` when name is available, otherwise just `fromEmail`.
