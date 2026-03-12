@@ -44,6 +44,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Search for threads by subject — used to resolve a valid API thread ID when the
+  // URL hash ID doesn't match the Gmail REST API format.
+  if (message.type === 'SEARCH_THREADS') {
+    const { token, subject } = message;
+    const q = encodeURIComponent(`subject:"${subject}"`);
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads?q=${q}&maxResults=5`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then(r => r.json())
+    .then(data => sendResponse({ data }))
+    .catch(e => sendResponse({ error: e.message }));
+    return true;
+  }
+
   // Get full draft details (for thread IDs & headers)
   if (message.type === 'GET_DRAFT') {
     const { token, draftId } = message;
