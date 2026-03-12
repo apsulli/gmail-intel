@@ -234,52 +234,80 @@ async function handleTrackedSend(composeWindow, sendButton) {
       if (threadId) console.log("Gmail Intel: threadId resolved from URL:", threadId);
     }
 
-    // When using URL-based threadId fallback (no draft), two problems exist:
-    // 1. Gmail URL hash IDs use a proprietary format that differs from the Gmail REST API
-    //    thread ID format — passing the URL ID to messages/send causes "Invalid thread_id value"
-    // 2. We have no In-Reply-To/References headers (required by messages/send when threadId is set)
+    // When using URL-based threadId fallback (no draft), the URL hash ID is often a
+    // message ID (not a thread ID) in Gmail's newer URL encoding. We resolve thread
+    // context through a three-stage chain:
     //
-    // Strategy: try GET_THREAD with the URL ID first (works for legacy hex-format URLs).
-    // If that fails, search by subject to get the real API thread ID, then fetch its headers.
+    // Stage 1 — GET_MESSAGE: treat URL hash ID as a message ID. On success we get the
+    //   real API threadId + In-Reply-To/References from the message headers directly.
+    //   This is the most reliable path for modern Gmail URLs.
+    //
+    // Stage 2 — GET_THREAD: treat URL hash ID as a legacy hex thread ID (older Gmail URLs).
+    //   On success, collect Message-IDs from thread messages to build reply headers.
+    //
+    // Stage 3 — SEARCH_THREADS: subject search as last resort if both above fail.
+    //   Requires a valid subject (extracted from h2.hP or document.title earlier).
     if (threadId && !inReplyTo) {
-      const tryGetThreadHeaders = async (apiThreadId) => {
-        const threadData = await new Promise(resolve => {
-          chrome.runtime.sendMessage({ type: 'GET_THREAD', token, threadId: apiThreadId }, res => resolve(res?.data));
-        });
-        if (threadData?.messages?.length > 0) {
-          const messageIds = threadData.messages
-            .map(msg => msg.payload?.headers?.find(h => h.name.toLowerCase() === 'message-id')?.value)
-            .filter(Boolean);
-          if (messageIds.length > 0) {
-            inReplyTo = messageIds[messageIds.length - 1];
-            references = messageIds.join(' ');
-            console.log("Gmail Intel: inReplyTo/references resolved for thread:", apiThreadId);
-            return true;
-          }
-        }
-        return false;
-      };
+      const urlId = threadId; // save original URL hash ID before any reassignment
 
-      const directOk = await tryGetThreadHeaders(threadId);
-      if (!directOk) {
-        // URL ID isn't a valid API ID — search by subject to find the real API thread ID
-        console.log("Gmail Intel: URL threadId not valid for API, searching by subject:", subject);
-        const searchData = await new Promise(resolve => {
-          chrome.runtime.sendMessage({ type: 'SEARCH_THREADS', token, subject }, res => resolve(res?.data));
-        });
-        if (searchData?.threads?.length > 0) {
-          const apiThreadId = searchData.threads[0].id;
-          console.log("Gmail Intel: API threadId resolved via subject search:", apiThreadId);
-          const searchOk = await tryGetThreadHeaders(apiThreadId);
-          if (searchOk) {
-            threadId = apiThreadId; // Replace URL-format ID with valid API ID
-          } else {
-            console.warn("Gmail Intel: GET_THREAD also failed for search result, clearing threadId");
-            threadId = null; // Can't thread reliably — send as new thread rather than 400 error
+      // Stage 1: try treating the URL hash ID as a message ID
+      const msgData = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ type: 'GET_MESSAGE', token, messageId: urlId }, res => resolve(res?.data));
+      });
+      if (msgData?.threadId && !msgData.error) {
+        threadId = msgData.threadId;
+        const hdrs = msgData.payload?.headers ?? [];
+        const getHdr = name => hdrs.find(h => h.name.toLowerCase() === name)?.value;
+        const msgId = getHdr('message-id');
+        const existingRefs = getHdr('references');
+        if (msgId) {
+          inReplyTo = msgId;
+          references = existingRefs ? `${existingRefs} ${msgId}` : msgId;
+          console.log("Gmail Intel: threadId + headers resolved via GET_MESSAGE:", threadId);
+        }
+      }
+
+      // Stage 2: if Stage 1 failed, try URL ID as a thread ID (legacy hex format)
+      if (!inReplyTo) {
+        const tryGetThreadHeaders = async (apiThreadId) => {
+          const threadData = await new Promise(resolve => {
+            chrome.runtime.sendMessage({ type: 'GET_THREAD', token, threadId: apiThreadId }, res => resolve(res?.data));
+          });
+          if (threadData?.messages?.length > 0) {
+            const messageIds = threadData.messages
+              .map(msg => msg.payload?.headers?.find(h => h.name.toLowerCase() === 'message-id')?.value)
+              .filter(Boolean);
+            if (messageIds.length > 0) {
+              inReplyTo = messageIds[messageIds.length - 1];
+              references = messageIds.join(' ');
+              console.log("Gmail Intel: inReplyTo/references resolved via GET_THREAD:", apiThreadId);
+              return true;
+            }
           }
-        } else {
-          console.warn("Gmail Intel: subject search returned no threads, clearing threadId");
-          threadId = null;
+          return false;
+        };
+
+        const threadOk = await tryGetThreadHeaders(urlId);
+        if (!threadOk) {
+          // Stage 3: subject search — last resort
+          console.log("Gmail Intel: URL ID not valid for thread API, searching by subject:", subject);
+          const searchData = await new Promise(resolve => {
+            chrome.runtime.sendMessage({ type: 'SEARCH_THREADS', token, subject }, res => resolve(res?.data));
+          });
+          if (searchData?.threads?.length > 0) {
+            const apiThreadId = searchData.threads[0].id;
+            console.log("Gmail Intel: API threadId resolved via subject search:", apiThreadId);
+            const searchOk = await tryGetThreadHeaders(apiThreadId);
+            if (searchOk) {
+              threadId = apiThreadId;
+            } else {
+              console.warn("Gmail Intel: GET_THREAD failed for search result, sending as new thread");
+              threadId = null;
+            }
+          } else {
+            console.warn("Gmail Intel: subject search returned no threads, sending as new thread");
+            threadId = null;
+          }
         }
       }
     }
@@ -332,30 +360,22 @@ async function handleTrackedSend(composeWindow, sendButton) {
     // After deletion (or if no draft ID), refresh the view so the sent
     // message and draft badge are up to date.
     //
-    // For inline replies (inside a thread view), we navigate the Gmail SPA
-    // hash away and back to the same thread — this re-renders the thread and
-    // shows the newly sent message. The global Refresh button only reloads
-    // the folder list and doesn't update an open thread.
+    // For inline replies (inside a thread view), navigate to the folder root
+    // only — do NOT navigate back to the thread. Navigating back causes Gmail
+    // to re-open the draft compose from its internal state (it remembers the
+    // thread had an active compose window), making the email appear un-sent.
+    // The user can click the thread in the folder list to see the new message.
     //
-    // For popup compose (inbox list view), we fall back to clicking the
-    // global Refresh button as before.
+    // For popup compose (inbox list view), click the global Refresh button.
     const refreshAfterSend = (resolvedThreadId) => {
       const hash = window.location.hash;
-      // If the API thread ID couldn't be resolved, fall back to the URL hash ID for
-      // SPA navigation. Gmail's router accepts both API-format and URL-format IDs.
-      const urlHashId = hash.includes('/') ? hash.split('/').pop() : null;
-      const navId = resolvedThreadId || urlHashId;
-      const isInThreadView = navId && hash.includes('/');
+      const isInThreadView = hash.includes('/');
 
       if (isInThreadView) {
-        // Navigate to the folder root (e.g. #inbox), then back to the thread.
-        // This triggers Gmail's SPA router to re-render the thread view with
-        // the new message visible.
+        // Navigate to the folder root (e.g. #inbox). Gmail re-renders the
+        // folder with the thread showing the new reply count.
         const hashBase = hash.substring(0, hash.lastIndexOf('/'));
         window.location.hash = hashBase;
-        setTimeout(() => {
-          window.location.hash = hashBase + '/' + navId;
-        }, 300);
       } else {
         // Folder list view: click the global Refresh button to sync draft badge.
         // Gmail toolbar buttons require a full mouse-event sequence; a bare

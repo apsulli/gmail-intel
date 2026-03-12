@@ -32,6 +32,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Get a single message by ID with key reply headers.
+  // Gmail URL hash IDs (e.g. #inbox/FMfcgz...) are often message IDs, not thread IDs.
+  // Fetching the message gives us the real API threadId + In-Reply-To chain in one call.
+  if (message.type === 'GET_MESSAGE') {
+    const { token, messageId } = message;
+    const headers = ['Message-ID', 'Subject', 'In-Reply-To', 'References'].map(h => `metadataHeaders=${h}`).join('&');
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=METADATA&${headers}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then(r => r.json())
+    .then(data => sendResponse({ data }))
+    .catch(e => sendResponse({ error: e.message }));
+    return true;
+  }
+
   // Get thread messages with Message-ID headers (for inline reply threading when no draft)
   if (message.type === 'GET_THREAD') {
     const { token, threadId } = message;
