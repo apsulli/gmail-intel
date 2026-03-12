@@ -202,3 +202,26 @@ from a popup compose in the inbox list view).
 **Committed:** `337e6b4`
 
 ## Status: RESOLVED
+
+---
+
+# Debug Session: 2026-03-12 — Invalid thread_id on Inline Reply Send
+
+## Symptom
+**When:** Sending a tracked inline reply (no draft autosaved yet)
+**Expected:** Message sent and threaded correctly
+**Actual:** `Gmail Error [400]: Invalid thread_id value` — email fails to send
+
+## Evidence
+- Console: `draft ID resolved to null` → both DOM and API draft extraction failed
+- Console: `threadId resolved from URL: FMfcgzQfCMsvMmcQTcpPjxjzNRcJNfMN` → URL fallback used
+- API returns 400 "Invalid thread_id value"
+
+## Root Cause: CONFIRMED
+Gmail API `messages/send` requires `In-Reply-To` and/or `References` MIME headers when `threadId` is provided. The previous fix (commit `337e6b4`) added the URL-based `threadId` fallback but did NOT populate `inReplyTo`/`references` for that path. Without threading headers, the API rejects the `threadId` with "Invalid thread_id value" — even when the `threadId` itself is correct.
+
+## Fix
+1. Added `GET_THREAD` message handler to `background.js`: calls `GET /threads/{threadId}?format=METADATA&metadataHeaders=Message-ID`
+2. In `content.js` `handleTrackedSend`: when `threadId` comes from URL fallback (`inReplyTo` is null), call `GET_THREAD` to fetch thread messages, extract their `Message-ID` headers, set `inReplyTo` = last message's ID, `references` = all message IDs joined
+
+## Status: RESOLVED

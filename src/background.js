@@ -32,6 +32,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  // Get thread messages with Message-ID headers (for inline reply threading when no draft)
+  if (message.type === 'GET_THREAD') {
+    const { token, threadId } = message;
+    fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=METADATA&metadataHeaders=Message-ID`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then(r => r.json())
+    .then(data => sendResponse({ data }))
+    .catch(e => sendResponse({ error: e.message }));
+    return true;
+  }
+
   // Get full draft details (for thread IDs & headers)
   if (message.type === 'GET_DRAFT') {
     const { token, draftId } = message;
