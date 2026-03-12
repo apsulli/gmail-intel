@@ -1,6 +1,6 @@
 {
   "name": "gmail-intel",
-  "version": "2.9.5",
+  "version": "2.9.6",
   "description": "Gmail Tracking Extension",
   "type": "module",
   "scripts": {
