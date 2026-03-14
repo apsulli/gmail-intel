@@ -1,12 +1,9 @@
 {
   "manifest_version": 3,
   "name": "Gmail Intel Mail Tracker Extension",
-  "version": "2.11.2",
+  "version": "2.11.3",
   "description": "Secure Gmail Tracking Extension",
-  "permissions": [
-    "identity",
-    "storage"
-  ],
+  "permissions": ["identity", "storage"],
   "host_permissions": [
     "https://mail.google.com/*",
     "https://gmail.googleapis.com/*",
@@ -19,12 +16,8 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://mail.google.com/*"
-      ],
-      "js": [
-        "src/content.js"
-      ]
+      "matches": ["https://mail.google.com/*"],
+      "js": ["src/content.js"]
     }
   ],
   "oauth2": {
