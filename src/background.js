@@ -1,4 +1,11 @@
 // Background Service Worker
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth/web-extension';
+import { firebaseConfig } from './firebase-config.js';
+
+const _fbApp = initializeApp(firebaseConfig);
+const _fbAuth = getAuth(_fbApp);
+
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Gmail Intel Extension Installed.");
 });
@@ -97,6 +104,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ ok: response.ok, status: response.status });
     })
     .catch(e => sendResponse({ error: e.message }));
+    return true;
+  }
+
+  // Authenticate Firebase and return a short-lived ID token to the content script.
+  // firebase/auth/web-extension lives here (service worker) so its bundle never
+  // lands in the content-script chunks that Chrome Web Store scans for remote URLs.
+  if (message.type === 'GET_FIREBASE_TOKEN') {
+    const { oauthToken } = message;
+    (async () => {
+      try {
+        let user = _fbAuth.currentUser;
+        if (!user) {
+          const cred = GoogleAuthProvider.credential(null, oauthToken);
+          const result = await signInWithCredential(_fbAuth, cred);
+          user = result.user;
+        }
+        const idToken = await user.getIdToken();
+        sendResponse({ uid: user.uid, email: user.email, displayName: user.displayName, idToken });
+      } catch (e) {
+        sendResponse({ error: e.message });
+      }
+    })();
     return true;
   }
 

@@ -1,6 +1,5 @@
 import { logEmailSent } from './api/db.js';
 import { sendTrackedEmail } from './api/gmail.js';
-import { getAuth, signInWithCredential, GoogleAuthProvider } from 'firebase/auth/web-extension';
 import { initSidebar } from './sidebar.js';
 import { mountDashboard } from './dashboard/index.jsx';
 
@@ -67,13 +66,16 @@ async function getAuthToken() {
   });
 }
 
-async function authenticateFirebase(token) {
-  const auth = getAuth();
-  if (!auth.currentUser) {
-    const credential = GoogleAuthProvider.credential(null, token);
-    await signInWithCredential(auth, credential);
-  }
-  return auth.currentUser;
+// Firebase Auth lives in background.js only (keeps firebase/auth out of this
+// bundle so Chrome Web Store doesn't flag remote URL strings in the SDK).
+async function authenticateFirebase(oauthToken) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type: 'GET_FIREBASE_TOKEN', oauthToken }, (res) => {
+      if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
+      if (res?.error) return reject(new Error(res.error));
+      resolve(res); // { uid, email, displayName, idToken }
+    });
+  });
 }
 
 function getDraftId(composeWindow) {
@@ -342,7 +344,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs,
       fromEmail: user.email ?? '',
       fromName: user.displayName ?? null,
-    });
+    }, user.idToken);
 
     // 5. Remove the compose window directly from the DOM.
     // The draft is already deleted via API — clicking Gmail's discard button
