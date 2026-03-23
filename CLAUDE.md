@@ -5,12 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Extension Development
+
 ```bash
 npm run dev        # Start Vite dev server with hot reload (extension auto-reloads in Chrome)
 npm run build      # Build the extension to dist/
+npm run zip        # Build the extension and create a zip file in zip/
 ```
 
 ### Firebase Cloud Functions
+
 ```bash
 cd functions && npm run serve   # Run Cloud Functions locally
 cd functions && npm run deploy  # Deploy Cloud Functions to Firebase
@@ -18,6 +21,7 @@ cd functions && npm run logs    # Stream function logs
 ```
 
 ### Firebase Deployment
+
 ```bash
 firebase deploy --only functions     # Deploy only Cloud Functions
 firebase deploy --only firestore     # Deploy only Firestore rules
@@ -26,6 +30,7 @@ firebase deploy                      # Deploy everything
 ```
 
 ### Loading the Extension
+
 After `npm run build`, load `dist/` as an unpacked extension in Chrome at `chrome://extensions` with Developer Mode enabled. Reload the extension after each rebuild.
 
 ## Architecture
@@ -35,6 +40,7 @@ This is a **Manifest V3 Chrome Extension** that instruments Gmail to track email
 ### Extension Components
 
 **`src/content.js`** — The core tracking engine. Runs inside `mail.google.com`:
+
 - Uses `MutationObserver` to detect Gmail compose windows as they open
 - Injects a "Track Email" checkbox toggle next to Gmail's Send button
 - Intercepts the Send action (click + Cmd/Ctrl+Enter keyboard shortcut)
@@ -42,6 +48,7 @@ This is a **Manifest V3 Chrome Extension** that instruments Gmail to track email
 - Saves email metadata to Firestore
 
 **`src/background.js`** — The Manifest V3 service worker. Acts as a proxy for two things:
+
 - OAuth token acquisition via `chrome.identity.getAuthToken()` (can't be called from content scripts)
 - Gmail API `send` requests (bypasses CORS restrictions that block content scripts)
 - Listens for `GET_AUTH_TOKEN` and `SEND_EMAIL` messages from the content script
@@ -51,6 +58,7 @@ This is a **Manifest V3 Chrome Extension** that instruments Gmail to track email
 ### Backend (Firebase)
 
 **`functions/index.js`** — Two HTTP Cloud Functions:
+
 - `trackPixel` — Logs an "open" event to Firestore sub-collection, returns a 1×1 transparent GIF
 - `trackClick` — Logs a "click" event with the target URL, then 302-redirects to the original URL
 
@@ -59,6 +67,7 @@ This is a **Manifest V3 Chrome Extension** that instruments Gmail to track email
 **`src/api/gmail.js`** — Builds RFC 2822 MIME messages and calls the Gmail API `/gmail/v1/users/me/messages/send` endpoint
 
 ### Firestore Data Model
+
 ```
 emails/{emailId}
   userId, subject, recipients[], sentAt

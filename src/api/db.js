@@ -2,7 +2,6 @@
 // strings end up in the content-script bundle (Chrome Web Store policy).
 const PROJECT = 'gm-intel';
 const FS = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
-const BATCH = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents:batchWrite`;
 
 // --- Value converters ---
 
@@ -73,21 +72,6 @@ async function fsPatch(docPath, data, idToken) {
 }
 
 // Write a document and atomically set one field to the server timestamp.
-async function fsBatchWrite(docPath, data, serverTsField, idToken) {
-  const name = `projects/${PROJECT}/databases/(default)/documents/${docPath}`;
-  const body = {
-    writes: [{
-      update: { name, fields: fieldsOf(data) },
-      updateTransforms: [{ fieldPath: serverTsField, setToServerValue: 'REQUEST_TIME' }],
-    }],
-  };
-  const res = await fetch(BATCH, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`Firestore batchWrite ${docPath}: ${res.status}`);
-}
 
 async function fsGet(docPath, idToken) {
   const res = await fetch(`${FS}/${docPath}`, {
@@ -99,9 +83,10 @@ async function fsGet(docPath, idToken) {
 
 // --- Public API ---
 
-export function subscribeToEmails(userId, idToken, callback, onError, limitCount = 20) {
+export function subscribeToEmails(userId, getToken, callback, onError, limitCount = 20) {
   async function fetchOnce() {
     try {
+      const idToken = await getToken();
       const docs = await fsRunQuery(`users/${userId}`, 'emails', 'sentAt', 'DESCENDING', limitCount, idToken);
       callback(docs);
     } catch (e) {
@@ -114,9 +99,10 @@ export function subscribeToEmails(userId, idToken, callback, onError, limitCount
   return () => clearInterval(id);
 }
 
-export function subscribeToEvents(userId, emailId, idToken, callback, onError) {
+export function subscribeToEvents(userId, emailId, getToken, callback, onError) {
   async function fetchOnce() {
     try {
+      const idToken = await getToken();
       const docs = await fsRunQuery(
         `users/${userId}/emails/${emailId}`, 'events', 'timestamp', 'DESCENDING', null, idToken
       );
@@ -143,7 +129,10 @@ export async function getEmailWithEvents(userId, emailId, idToken) {
 export async function logEmailSent(emailData, idToken) {
   try {
     const { emailId, userId, ...rest } = emailData;
-    await fsBatchWrite(`users/${userId}/emails/${emailId}`, rest, 'sentAt', idToken);
+    // Use client-side timestamp via fsPatch (no server transform needed).
+    // fsBatchWrite with updateTransforms was used for server timestamps but
+    // caused persistent 403s; client-side sentAt is accurate enough for display.
+    await fsPatch(`users/${userId}/emails/${emailId}`, { ...rest, sentAt: new Date().toISOString() }, idToken);
     try {
       await fsPatch(`emailLookup/${emailId}`, { userId, sentAt: Date.now() }, idToken);
     } catch (e) {

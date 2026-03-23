@@ -14,10 +14,18 @@ if (IS_PRIMARY_ACCOUNT) {
   console.log("Gmail Intel Content Script Loaded.");
 }
 
+// Returns a fresh Firebase ID token on each call — safe to use across polls
+// and long-running flows. Background.js auto-refreshes the Firebase token if
+// the cached one is near expiry; getting a new OAuth token is cheap (cached).
+async function getIdToken() {
+  const oauthToken = await getAuthToken();
+  const res = await authenticateFirebase(oauthToken);
+  return res.idToken;
+}
+
 async function initDashboardAuth() {
   try {
-    const token = await getAuthToken();
-    const user = await authenticateFirebase(token);
+    const user = await authenticateFirebase(await getAuthToken());
     return user;
   } catch (e) {
     console.warn("Gmail Intel: dashboard auth failed", e);
@@ -40,7 +48,7 @@ if (IS_PRIMARY_ACCOUNT) {
     await waitForGmailReady();
     const { container, close } = initSidebar();
     const user = await initDashboardAuth();
-    mountDashboard(container, user, close);
+    mountDashboard(container, user, close, getIdToken);
   })();
 }
 
@@ -336,7 +344,9 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipientLogs.push({ email: recipient, id: recipientId });
     }
 
-    // 4. Log to Firestore
+    // 4. Log to Firestore — get a fresh ID token in case auth state changed
+    // during the send flow (e.g. service worker restart between steps).
+    const freshIdToken = await getIdToken();
     await logEmailSent({
       emailId: emailId,
       userId: user.uid,
@@ -344,7 +354,7 @@ async function handleTrackedSend(composeWindow, sendButton) {
       recipients: recipientLogs,
       fromEmail: user.email ?? '',
       fromName: user.displayName ?? null,
-    }, user.idToken);
+    }, freshIdToken);
 
     // 5. Remove the compose window directly from the DOM.
     // The draft is already deleted via API — clicking Gmail's discard button

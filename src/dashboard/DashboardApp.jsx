@@ -83,16 +83,16 @@ function buildRecipientStats(recipients, events) {
   return stats;
 }
 
-function EmailRow({ email, userId, idToken, onSelect, selected, isSeen, onUnreadChange }) {
+function EmailRow({ email, userId, getToken, onSelect, selected, isSeen, onUnreadChange }) {
   const [events, setEvents] = useState([]);
   const [eventsError, setEventsError] = useState(null);
   const [expandedRecipient, setExpandedRecipient] = useState(null);
 
   useEffect(() => {
     setEventsError(null);
-    const unsub = subscribeToEvents(userId, email.id, idToken, setEvents, setEventsError);
+    const unsub = subscribeToEvents(userId, email.id, getToken, setEvents, setEventsError);
     return unsub;
-  }, [userId, email.id, idToken]);
+  }, [userId, email.id, getToken]);
 
   const openEvents = events.filter(e => e.type === 'open');
   const clicks = events.filter(e => e.type === 'click').length;
@@ -212,7 +212,7 @@ function EmailRow({ email, userId, idToken, onSelect, selected, isSeen, onUnread
   );
 }
 
-export default function DashboardApp({ user, onClose }) {
+export default function DashboardApp({ user, onClose, getToken }) {
   const [emails, setEmails] = useState(null);
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState(null);
@@ -221,11 +221,11 @@ export default function DashboardApp({ user, onClose }) {
   const [unreadSet, setUnreadSet] = useState(new Set());
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !getToken) return;
     setError(null);
-    const unsub = subscribeToEmails(user.uid, user.idToken, setEmails, setError, emailLimit);
+    const unsub = subscribeToEmails(user.uid, getToken, setEmails, setError, emailLimit);
     return unsub;
-  }, [user?.uid, user?.idToken, emailLimit]);
+  }, [user?.uid, getToken, emailLimit]);
 
   useEffect(() => {
     getSeenMap().then(setSeenMap);
@@ -382,7 +382,7 @@ export default function DashboardApp({ user, onClose }) {
                       key={email.id}
                       email={email}
                       userId={user.uid}
-                      idToken={user.idToken}
+                      getToken={getToken}
                       selected={selected?.id === email.id}
                       onSelect={handleSelect}
                       isSeen={!!seenMap[email.id]}
